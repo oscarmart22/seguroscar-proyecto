@@ -77,53 +77,17 @@
         }
 
         /* ── Vote column ── */
-        .post-votes {
+        .post-manage {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.15rem;
-            min-width: 44px;
-            flex-shrink: 0;
-            padding-top: 0.25rem;
+            gap: 0.5rem;
+            margin-left: 1rem;
         }
-        .vote-score {
-            font-weight: 800;
-            font-size: 1rem;
-            color: #e0e0e0;
-            margin-bottom: 0.25rem;
-            transition: color 0.3s ease;
+        .btn-manage {
+            background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #888;
+            transition: color 0.2s;
         }
-        .vote-score.positive { color: #00ffa3; }
-        .vote-score.negative { color: #ff4d6a; }
-        .vote-btns {
-            display: flex;
-            gap: 0.25rem;
-        }
-        .vote-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #888;
-            cursor: pointer;
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            line-height: 1;
-            transition: all 0.3s ease;
-        }
-        .vote-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-        }
-        .vote-btn.upvoted {
-            background: rgba(0, 123, 255, 0.15);
-            border-color: rgba(0, 123, 255, 0.3);
-            color: #007bff;
-        }
-        .vote-btn.downvoted {
-            background: rgba(255, 75, 43, 0.15);
-            border-color: rgba(255, 75, 43, 0.3);
-            color: #ff4b2b;
-        }
+        .btn-edit:hover { color: #00d4ff; }
+        .btn-delete:hover { color: #ff4d6a; }
 
         /* ── Post content ── */
         .post-content-area {
@@ -307,6 +271,7 @@
         'use strict';
 
         var loggedIn = false;
+        var currentUsername = null;
         var postsList = document.getElementById('postsList');
 
         function esc(str) {
@@ -315,18 +280,7 @@
             return d.innerHTML;
         }
 
-        function scoreClass(score) {
-            if (score > 0) return ' positive';
-            if (score < 0) return ' negative';
-            return '';
-        }
-
         function buildPostHtml(post) {
-            var score = post.score || 0;
-            var userVote = post.user_vote || 0;
-            var upClass = userVote === 1 ? ' upvoted' : '';
-            var downClass = userVote === -1 ? ' downvoted' : '';
-
             var adminBadge = post.is_admin ? ' <span class="badge-admin">Admin</span>' : '';
 
             var repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
@@ -335,21 +289,24 @@
             }
             repliesHtml += '</div>';
 
+            var isOwnerOrAdmin = (loggedIn && (currentUsername === post.username || currentUsername === 'oscarmart22'));
+            var manageActions = '';
+            if (isOwnerOrAdmin) {
+                manageActions = '<button class="btn-manage btn-edit" data-edit-id="' + post.id + '" title="Editar">&#9998;</button>' +
+                                '<button class="btn-manage btn-delete" data-delete-id="' + post.id + '" title="Eliminar">&#128465;</button>';
+            }
+
             return '<div class="glass-card post-card" id="post-' + post.id + '">'
-                + '<div class="post-votes">'
-                +   '<span class="vote-score' + scoreClass(score) + '" id="vote-count-' + post.id + '">' + score + '</span>'
-                +   '<div class="vote-btns">'
-                +     '<button class="vote-btn' + upClass + '" data-vote-id="' + post.id + '" data-vote-type="up" title="Upvote">&#9650;</button>'
-                +     '<button class="vote-btn' + downClass + '" data-vote-id="' + post.id + '" data-vote-type="down" title="Downvote">&#9660;</button>'
-                +   '</div>'
-                + '</div>'
-                + '<div class="post-content-area">'
+                + '<div class="post-content-area" style="width:100%;">'
                 +   '<div class="post-header">'
-                +     '<span class="post-author">' + esc(post.username) + '</span>'
-                +     adminBadge
-                +     '<span class="post-time">' + esc(post.timestamp || '') + '</span>'
+                +     '<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex-grow:1;">'
+                +       '<span class="post-author">' + esc(post.username) + '</span>'
+                +       adminBadge
+                +       '<span class="post-time">' + esc(post.timestamp || '') + '</span>'
+                +     '</div>'
+                +     '<div class="post-manage">' + manageActions + '</div>'
                 +   '</div>'
-                +   '<div class="post-body">' + esc(post.content) + '</div>'
+                +   '<div class="post-body" id="post-body-' + post.id + '">' + esc(post.content) + '</div>'
                 +   '<div class="post-actions">'
                 +     '<button class="btn-reply" data-reply-id="' + post.id + '">Responder</button>'
                 +   '</div>'
@@ -389,6 +346,7 @@
             .then(function(data) {
                 if (data.logged_in) {
                     loggedIn = true;
+                    currentUsername = data.username;
                     document.getElementById('loginPrompt').style.display = 'none';
                     document.getElementById('postFormCard').style.display = 'block';
                     
@@ -510,65 +468,48 @@
         postsList.addEventListener('click', function(e) {
             var target = e.target;
 
-            // VOTE
-            if (target.classList.contains('vote-btn')) {
+            // DELETE
+            if (target.classList.contains('btn-delete')) {
                 e.preventDefault();
-                var postId = target.getAttribute('data-vote-id');
-                var voteType = target.getAttribute('data-vote-type');
-                if (!postId || !voteType) return;
-                if (!loggedIn) { alert('Debes iniciar sesión para votar.'); return; }
+                var postId = target.getAttribute('data-delete-id');
+                if (!postId) return;
+                if (!confirm('¿Estás seguro de que quieres eliminar este post?')) return;
 
-                // Optimistic immediately
-                var card = document.getElementById('post-' + postId);
-                var upBtn = card.querySelector('[data-vote-type="up"][data-vote-id="' + postId + '"]');
-                var downBtn = card.querySelector('[data-vote-type="down"][data-vote-id="' + postId + '"]');
-                
-                var wasUp = upBtn.classList.contains('upvoted');
-                var wasDown = downBtn.classList.contains('downvoted');
-                
-                upBtn.classList.remove('upvoted');
-                downBtn.classList.remove('downvoted');
-
-                if (voteType === 'up' && !wasUp) {
-                    upBtn.classList.add('upvoted');
-                } else if (voteType === 'down' && !wasDown) {
-                    downBtn.classList.add('downvoted');
-                }
-
-                fetch('/api/vote', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: parseInt(postId), vote_type: voteType })
-                })
+                fetch('/api/posts/delete/' + postId, { method: 'DELETE' })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.error) { 
-                        alert(data.error); 
-                        // revert
-                        upBtn.classList.toggle('upvoted', wasUp);
-                        downBtn.classList.toggle('downvoted', wasDown);
-                        return; 
-                    }
-
-                    // Update score display
-                    var countEl = document.getElementById('vote-count-' + postId);
-                    countEl.textContent = data.score;
-                    countEl.className = 'vote-score' + scoreClass(data.score);
-
-                    // Force update exact states from server just in case
-                    upBtn.classList.remove('upvoted');
-                    downBtn.classList.remove('downvoted');
-                    if (data.user_vote === 1) {
-                        upBtn.classList.add('upvoted');
-                    } else if (data.user_vote === -1) {
-                        downBtn.classList.add('downvoted');
-                    }
+                    if (data.error) { alert(data.error); return; }
+                    var card = document.getElementById('post-' + postId);
+                    if (card) card.remove();
                 })
-                .catch(function() { 
-                    // revert
-                    upBtn.classList.toggle('upvoted', wasUp);
-                    downBtn.classList.toggle('downvoted', wasDown);
-                });
+                .catch(function() { alert('Error al eliminar'); });
+                return;
+            }
+
+            // EDIT
+            if (target.classList.contains('btn-edit')) {
+                e.preventDefault();
+                var postId = target.getAttribute('data-edit-id');
+                if (!postId) return;
+                var bodyDiv = document.getElementById('post-body-' + postId);
+                if (!bodyDiv) return;
+                var currentText = bodyDiv.textContent;
+                var newText = prompt('Edita tu publicación:', currentText);
+                if (newText !== null && newText.trim() !== '' && newText !== currentText) {
+                    fetch('/api/posts/edit/' + postId, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: newText.trim() })
+                    })
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data.error) { alert(data.error); return; }
+                        if (data.post) {
+                            bodyDiv.textContent = data.post.content;
+                        }
+                    })
+                    .catch(function() { alert('Error al editar'); });
+                }
                 return;
             }
 

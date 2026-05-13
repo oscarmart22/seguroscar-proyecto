@@ -48,13 +48,7 @@ class Post(db.Model):
         order_by='Post.timestamp.asc()'
     )
 
-class Vote(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    value = db.Column(db.Integer, nullable=False)  # 1 = upvote, -1 = downvote
 
-    __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_user_post_vote'),)
 
 # ─── DB Init ───
 
@@ -156,22 +150,9 @@ def foro():
 
 # ─── Forum API ───
 
-def get_vote_score(post_id):
-    from sqlalchemy import func
-    result = db.session.query(func.coalesce(func.sum(Vote.value), 0)).filter_by(post_id=post_id).scalar()
-    return int(result)
-
 def serialize_post(post, current_user_id=None):
     autor = post.user.username if post.user else 'Usuario Anónimo'
     is_admin = (autor == ADMIN_USERNAME)
-    score = get_vote_score(post.id)
-
-    # Current user's vote on this post
-    user_vote = 0
-    if current_user_id:
-        existing = Vote.query.filter_by(user_id=current_user_id, post_id=post.id).first()
-        if existing:
-            user_vote = existing.value
 
     return {
         "id": post.id,
@@ -179,8 +160,6 @@ def serialize_post(post, current_user_id=None):
         "is_admin": is_admin,
         "content": post.content,
         "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S") if post.timestamp else "",
-        "score": score,
-        "user_vote": user_vote,
         "parent_id": post.parent_id,
         "replies": [serialize_post(reply, current_user_id) for reply in (post.replies or [])]
     }
@@ -217,59 +196,51 @@ def api_posts():
     posts = Post.query.filter_by(parent_id=None).order_by(Post.timestamp.desc()).all()
     return jsonify([serialize_post(p, current_uid) for p in posts]), 200
 
-@app.route('/api/vote', methods=['POST'])
-def api_vote():
-    if not current_user.is_authenticated:
-        return jsonify({"error": "No autenticado"}), 401
+@app.route('/api/posts/delete/<int:post_id>', methods=['DELETE'])
+@login_required
+def delete_post(post_id):
+    post = db.session.get(Post, post_id)
+    if not post:
+        return jsonify({"error": "Post no encontrado"}), 404
+
+    # Permission check
+    is_owner = (post.user_id == current_user.id)
+    is_admin = (current_user.username == ADMIN_USERNAME)
+
+    if not (is_owner or is_admin):
+        return jsonify({"error": "No tienes permiso para borrar este post"}), 403
+
+    def delete_recursive(p):
+        for child in p.replies:
+            delete_recursive(child)
+        db.session.delete(p)
+
+    delete_recursive(post)
+    db.session.commit()
+    return jsonify({"message": "Post eliminado exitosamente"}), 200
+
+@app.route('/api/posts/edit/<int:post_id>', methods=['PUT'])
+@login_required
+def edit_post(post_id):
+    post = db.session.get(Post, post_id)
+    if not post:
+        return jsonify({"error": "Post no encontrado"}), 404
+
+    if post.user_id != current_user.id:
+        return jsonify({"error": "Solo el autor puede editar este post"}), 403
+
     try:
         data = request.get_json(force=True)
     except Exception:
         return jsonify({"error": "Datos inválidos"}), 400
 
-    post_id = data.get('post_id')
-    vote_type = data.get('vote_type')
+    new_content = data.get('content', '').strip()
+    if not new_content:
+        return jsonify({"error": "El contenido no puede estar vacío"}), 400
 
-    if vote_type not in ('up', 'down'):
-        return jsonify({"error": "Tipo de voto inválido"}), 400
-
-    post = db.session.get(Post, post_id)
-    if not post:
-        return jsonify({"error": "Post no encontrado"}), 404
-
-    new_value = 1 if vote_type == 'up' else -1
-    user_id = current_user.id
-
-    existing_vote = Vote.query.filter_by(user_id=user_id, post_id=post_id).first()
-
-    if existing_vote:
-        if existing_vote.value == new_value:
-            # Same button pressed again → remove vote (toggle off)
-            db.session.delete(existing_vote)
-            db.session.commit()
-            return jsonify({
-                "message": "Voto eliminado",
-                "score": get_vote_score(post_id),
-                "user_vote": 0
-            }), 200
-        else:
-            # Switch vote direction
-            existing_vote.value = new_value
-            db.session.commit()
-            return jsonify({
-                "message": "Voto actualizado",
-                "score": get_vote_score(post_id),
-                "user_vote": new_value
-            }), 200
-    else:
-        # New vote
-        new_vote = Vote(user_id=user_id, post_id=post_id, value=new_value)
-        db.session.add(new_vote)
-        db.session.commit()
-        return jsonify({
-            "message": "Voto registrado",
-            "score": get_vote_score(post_id),
-            "user_vote": new_value
-        }), 200
+    post.content = new_content
+    db.session.commit()
+    return jsonify({"message": "Post actualizado", "post": serialize_post(post, current_user.id)}), 200
 
 # ─── Static fallback (must be last) ───
 
