@@ -256,3 +256,133 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
+/* =============================================
+   AUTHENTICATION LOGIC (Login/Register)
+   ============================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    const authSection = document.getElementById('authSection');
+    const authModal = document.getElementById('authModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const authForm = document.getElementById('authForm');
+    const authToggleLink = document.getElementById('authToggleLink');
+    const modalTitle = document.getElementById('modalTitle');
+    const authSubmit = document.getElementById('authSubmit');
+    const authToggleText = document.getElementById('authToggleText');
+    const authError = document.getElementById('authError');
+    
+    let isLoginMode = true;
+
+    // Check user session
+    function checkAuth() {
+        fetch('/api/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.logged_in) {
+                    authSection.innerHTML = `
+                        <span style="color: var(--color-text-heading); font-weight: 600; margin-right: 1rem;">Hola, ${data.username}</span>
+                        <a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border: 1px solid var(--color-danger); color: var(--color-danger);">Cerrar Sesión</a>
+                        <a href="#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
+                    `;
+                    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        fetch('/logout', { method: 'POST' }).then(() => {
+                            window.location.reload();
+                        });
+                    });
+                } else {
+                    // Make sure login btn listener is re-attached if rendered again
+                    const loginBtn = document.getElementById('loginBtn');
+                    if(loginBtn) {
+                        loginBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            openModal(true);
+                        });
+                    }
+                }
+            })
+            .catch(err => console.error("Error checking auth:", err));
+    }
+
+    // Initialize check
+    checkAuth();
+
+    function openModal(loginMode) {
+        isLoginMode = loginMode;
+        authError.textContent = '';
+        authForm.reset();
+        
+        if (isLoginMode) {
+            modalTitle.textContent = 'Iniciar Sesión';
+            authSubmit.textContent = 'Ingresar';
+            authToggleText.textContent = '¿No tienes cuenta?';
+            authToggleLink.textContent = 'Regístrate';
+        } else {
+            modalTitle.textContent = 'Crear Cuenta';
+            authSubmit.textContent = 'Registrarse';
+            authToggleText.textContent = '¿Ya tienes cuenta?';
+            authToggleLink.textContent = 'Inicia sesión';
+        }
+        
+        authModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeAuthModal() {
+        authModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if(closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeAuthModal);
+    }
+    
+    if(authModal) {
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModal();
+        });
+    }
+
+    if(authToggleLink) {
+        authToggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal(!isLoginMode);
+        });
+    }
+
+    if(authForm) {
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            authError.textContent = '';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isLoginMode ? '/login' : '/register';
+            
+            authSubmit.disabled = true;
+            authSubmit.textContent = 'Procesando...';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(res => {
+                authSubmit.disabled = false;
+                if (res.status >= 200 && res.status < 300) {
+                    closeAuthModal();
+                    checkAuth();
+                } else {
+                    authError.textContent = res.body.error || 'Ocurrió un error inesperado';
+                    authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
+                }
+            })
+            .catch(err => {
+                authSubmit.disabled = false;
+                authError.textContent = 'Error de conexión';
+                authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
+            });
+        });
+    }
+});

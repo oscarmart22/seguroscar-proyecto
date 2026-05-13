@@ -73,8 +73,8 @@
                     </ul>
                 </div>
 
-                <div class="navbar__right">
-                    <a href="#contacto" class="navbar__btn navbar__btn--signin">Iniciar Sesión</a>
+                <div class="navbar__right" id="authSection">
+                    <a href="#" id="loginBtn" class="navbar__btn navbar__btn--signin">Iniciar Sesión</a>
                     <a href="#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
                 </div>
 
@@ -953,6 +953,32 @@
             </div>
         </div>
     </footer>
+
+    <!-- Login/Register Modal -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="closeModal" class="modal-close">&times;</button>
+            <div class="modal-header">
+                <h3 id="modalTitle">Iniciar Sesión</h3>
+            </div>
+            <form id="authForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn--primary btn--block" id="authSubmit">Ingresar</button>
+                <div id="authError" class="auth-error"></div>
+                <p class="auth-toggle">
+                    <span id="authToggleText">¿No tienes cuenta?</span>
+                    <a href="#" id="authToggleLink">Regístrate</a>
+                </p>
+            </form>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

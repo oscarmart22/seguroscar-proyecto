@@ -1,109 +1,86 @@
-"""HTTP server with Range request support for video seeking.
-Binds to both IPv4 and IPv6 to handle all localhost configurations.
-"""
 import os
-import sys
-import mimetypes
-import socket
-import threading
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from flask import Flask, request, jsonify, session, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
+app = Flask(__name__, static_folder='.', static_url_path='')
+app.config['SECRET_KEY'] = 'seguroscar-super-secret-key-123'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
-    def send_head(self):
-        path = self.translate_path(self.path)
+db = SQLAlchemy(app)
 
-        if os.path.isdir(path):
-            return super().send_head()
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
 
-        if not os.path.isfile(path):
-            self.send_error(404, "File not found")
-            return None
+with app.app_context():
+    db.create_all()
 
-        file_size = os.path.getsize(path)
-        ctype, _ = mimetypes.guess_type(path)
-        if ctype is None:
-            ctype = 'application/octet-stream'
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
-        range_header = self.headers.get('Range')
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Datos inválidos"}), 400
 
-        if range_header and range_header.startswith('bytes='):
-            range_spec = range_header[6:].strip()
-            parts = range_spec.split('-')
-            start = int(parts[0]) if parts[0] else 0
-            end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
-            end = min(end, file_size - 1)
-            length = end - start + 1
+    username = data.get('username')
+    password = data.get('password')
 
-            f = open(path, 'rb')
-            f.seek(start)
+    if not username or not password:
+        return jsonify({"error": "Usuario y contraseña son requeridos"}), 400
 
-            self.send_response(206)
-            self.send_header('Content-type', ctype)
-            self.send_header('Accept-Ranges', 'bytes')
-            self.send_header('Content-Range', 'bytes %d-%d/%d' % (start, end, file_size))
-            self.send_header('Content-Length', str(length))
-            self.end_headers()
-            return LimitedFile(f, length)
-        else:
-            f = open(path, 'rb')
-            self.send_response(200)
-            self.send_header('Content-type', ctype)
-            self.send_header('Accept-Ranges', 'bytes')
-            self.send_header('Content-Length', str(file_size))
-            self.end_headers()
-            return f
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "El usuario ya existe"}), 400
 
+    hashed_password = generate_password_hash(password)
+    new_user = User(username=username, password_hash=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
 
-class LimitedFile:
-    def __init__(self, f, limit):
-        self.f = f
-        self.remaining = limit
+    # Log in automatically after registration
+    session['user_id'] = new_user.id
+    session['username'] = new_user.username
+    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username}), 201
 
-    def read(self, n=-1):
-        if self.remaining <= 0:
-            return b''
-        if n < 0 or n > self.remaining:
-            n = self.remaining
-        data = self.f.read(n)
-        self.remaining -= len(data)
-        return data
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Datos inválidos"}), 400
 
-    def close(self):
-        self.f.close()
+    username = data.get('username')
+    password = data.get('password')
 
+    user = User.query.filter_by(username=username).first()
 
-class HTTPServerV6(HTTPServer):
-    address_family = socket.AF_INET6
+    if user and check_password_hash(user.password_hash, password):
+        session['user_id'] = user.id
+        session['username'] = user.username
+        return jsonify({"message": "Inicio de sesión exitoso", "username": user.username}), 200
 
+    return jsonify({"error": "Credenciales inválidas"}), 401
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    return jsonify({"message": "Sesión cerrada"}), 200
+
+@app.route('/api/me', methods=['GET'])
+def get_me():
+    if 'user_id' in session:
+        return jsonify({"logged_in": True, "username": session['username']})
+    return jsonify({"logged_in": False})
+
+@app.route('/<path:path>')
+def send_static(path):
+    return send_from_directory('.', path)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-
-    # Start IPv4 server
-    server4 = HTTPServer(('0.0.0.0', port), RangeHTTPRequestHandler)
-    t4 = threading.Thread(target=server4.serve_forever, daemon=True)
-    t4.start()
-    print(f'IPv4 server running on 0.0.0.0:{port}', flush=True)
-
-    # Start IPv6 server on a different port or same port
-    try:
-        server6 = HTTPServerV6(('::', port + 1), RangeHTTPRequestHandler)
-        t6 = threading.Thread(target=server6.serve_forever, daemon=True)
-        t6.start()
-        print(f'IPv6 server running on [::]:{port + 1}', flush=True)
-    except OSError:
-        pass
-
-    print(f'\nOpen http://127.0.0.1:{port} in your browser', flush=True)
-
-    try:
-        while True:
-            t4.join(1)
-            if not t4.is_alive():
-                break
-    except KeyboardInterrupt:
-        print("\nCerrando servidor...")
-        server4.shutdown()
-        if 'server6' in locals():
-            server6.shutdown()
+    app.run(host='0.0.0.0', port=port)
