@@ -113,15 +113,15 @@
             background: rgba(255, 255, 255, 0.12);
             color: #fff;
         }
-        .vote-btn.active-up {
-            background: rgba(0, 255, 163, 0.15);
-            border-color: rgba(0, 255, 163, 0.3);
-            color: #00ffa3;
+        .vote-btn.upvoted {
+            background: rgba(0, 123, 255, 0.15);
+            border-color: rgba(0, 123, 255, 0.3);
+            color: #007bff;
         }
-        .vote-btn.active-down {
-            background: rgba(255, 77, 106, 0.15);
-            border-color: rgba(255, 77, 106, 0.3);
-            color: #ff4d6a;
+        .vote-btn.downvoted {
+            background: rgba(255, 75, 43, 0.15);
+            border-color: rgba(255, 75, 43, 0.3);
+            color: #ff4b2b;
         }
 
         /* ── Post content ── */
@@ -219,28 +219,54 @@
     </style>
 </head>
 <body>
-    <nav class="navbar scrolled" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(24px);">
+    <nav class="navbar scrolled" id="navbar" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(24px);">
         <div class="navbar__inner">
             <div class="navbar__left">
-                <a href="/" class="navbar__logo" style="gap: 0; align-items: center;">
-                    <span style="font-size: 24px; font-weight: 800; letter-spacing: -1px; color: #ffffff;">segur</span>
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 1px;">
+                <a href="/" class="navbar__logo" id="navLogo" style="gap: 0; align-items: center;">
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">segur</span>
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 1px; transform: translateY(2px);">
                         <defs>
-                            <linearGradient id="logoBlueGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <linearGradient id="logoBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stop-color="#00d4ff" />
                                 <stop offset="100%" stop-color="#0055aa" />
                             </linearGradient>
                         </defs>
-                        <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad2)" fill="#000000" />
-                        <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad2)" />
-                        <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad2)" stroke="none" />
+                        <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad)" fill="#000000" />
+                        <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad)" />
+                        <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad)" stroke="none" />
                     </svg>
-                    <span style="font-size: 24px; font-weight: 800; letter-spacing: -1px; color: #ffffff;">scar</span>
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">scar</span>
                 </a>
+                <ul class="navbar__nav-links" id="navLinks">
+                    <li><a href="/#hero" class="navbar__link">Inicio</a></li>
+                    <li class="navbar__link-dropdown">
+                        <a href="/#producto" class="navbar__link">
+                            Producto
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </a>
+                        <div class="navbar__dropdown-menu">
+                            <a href="/#producto">Soluciones</a>
+                            <a href="/#como-ayuda">Servicios</a>
+                            <a href="/#planes">Planes</a>
+                        </div>
+                    </li>
+                    <li><a href="/#mercado" class="navbar__link">Mercado</a></li>
+                    <li><a href="/foro" class="navbar__link" style="color: var(--color-primary); font-weight: bold;">Foro</a></li>
+                    <li><a href="/#contacto" class="navbar__link">Contacto</a></li>
+                </ul>
             </div>
-            <div class="navbar__right">
-                <a href="/" class="navbar__btn navbar__btn--outline">Volver al Inicio</a>
+
+            <div class="navbar__right" id="authSection">
+                <a href="#" id="loginBtn" class="navbar__btn navbar__btn--signin">Iniciar Sesión</a>
+                <a href="/#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
             </div>
+
+            <button class="navbar__toggle" id="navToggle" aria-label="Abrir menú">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
 
@@ -293,8 +319,8 @@
         function buildPostHtml(post) {
             var score = post.score || 0;
             var userVote = post.user_vote || 0;
-            var upClass = userVote === 1 ? ' active-up' : '';
-            var downClass = userVote === -1 ? ' active-down' : '';
+            var upClass = userVote === 1 ? ' upvoted' : '';
+            var downClass = userVote === -1 ? ' downvoted' : '';
 
             var adminBadge = post.is_admin ? ' <span class="badge-admin">Admin</span>' : '';
 
@@ -360,10 +386,47 @@
                     loggedIn = true;
                     document.getElementById('loginPrompt').style.display = 'none';
                     document.getElementById('postFormCard').style.display = 'block';
+                    
+                    var authSection = document.getElementById('authSection');
+                    if (authSection) {
+                        authSection.innerHTML = '<span style="color: #fff; font-weight: 600; margin-right: 1rem;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border: 1px solid var(--color-danger); color: var(--color-danger);">Cerrar Sesión</a>' +
+                            '<a href="/#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>';
+                        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                            e.preventDefault();
+                            fetch('/logout', { method: 'POST' }).then(function() { window.location.reload(); });
+                        });
+                    }
+                } else {
+                    var loginBtn = document.getElementById('loginBtn');
+                    if (loginBtn) {
+                        loginBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            window.location.href = '/';
+                        });
+                    }
                 }
                 loadPosts();
             })
             .catch(function() { loadPosts(); });
+
+        // Mobile menu toggle
+        var navToggle = document.getElementById('navToggle');
+        var navLinks = document.getElementById('navLinks');
+        if (navToggle && navLinks) {
+            navToggle.addEventListener('click', function() {
+                navToggle.classList.toggle('active');
+                navLinks.classList.toggle('open');
+                document.body.style.overflow = navLinks.classList.contains('open') ? 'hidden' : '';
+            });
+            navLinks.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    navToggle.classList.remove('active');
+                    navLinks.classList.remove('open');
+                    document.body.style.overflow = '';
+                });
+            });
+        }
 
         // New Post
         document.getElementById('newPostForm').addEventListener('submit', function(e) {
@@ -422,6 +485,23 @@
                 if (!postId || !voteType) return;
                 if (!loggedIn) { alert('Debes iniciar sesión para votar.'); return; }
 
+                // Optimistic immediately
+                var card = document.getElementById('post-' + postId);
+                var upBtn = card.querySelector('[data-vote-type="up"][data-vote-id="' + postId + '"]');
+                var downBtn = card.querySelector('[data-vote-type="down"][data-vote-id="' + postId + '"]');
+                
+                var wasUp = upBtn.classList.contains('upvoted');
+                var wasDown = downBtn.classList.contains('downvoted');
+                
+                upBtn.classList.remove('upvoted');
+                downBtn.classList.remove('downvoted');
+
+                if (voteType === 'up' && !wasUp) {
+                    upBtn.classList.add('upvoted');
+                } else if (voteType === 'down' && !wasDown) {
+                    downBtn.classList.add('downvoted');
+                }
+
                 fetch('/api/vote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -429,26 +509,33 @@
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.error) { alert(data.error); return; }
+                    if (data.error) { 
+                        alert(data.error); 
+                        // revert
+                        upBtn.classList.toggle('upvoted', wasUp);
+                        downBtn.classList.toggle('downvoted', wasDown);
+                        return; 
+                    }
 
                     // Update score display
                     var countEl = document.getElementById('vote-count-' + postId);
                     countEl.textContent = data.score;
                     countEl.className = 'vote-score' + scoreClass(data.score);
 
-                    // Update button active states
-                    var card = document.getElementById('post-' + postId);
-                    var btns = card.querySelectorAll('.vote-btn[data-vote-id="' + postId + '"]');
-                    btns.forEach(function(b) {
-                        b.classList.remove('active-up', 'active-down');
-                    });
+                    // Force update exact states from server just in case
+                    upBtn.classList.remove('upvoted');
+                    downBtn.classList.remove('downvoted');
                     if (data.user_vote === 1) {
-                        card.querySelector('[data-vote-type="up"][data-vote-id="' + postId + '"]').classList.add('active-up');
+                        upBtn.classList.add('upvoted');
                     } else if (data.user_vote === -1) {
-                        card.querySelector('[data-vote-type="down"][data-vote-id="' + postId + '"]').classList.add('active-down');
+                        downBtn.classList.add('downvoted');
                     }
                 })
-                .catch(function() { /* silent */ });
+                .catch(function() { 
+                    // revert
+                    upBtn.classList.toggle('upvoted', wasUp);
+                    downBtn.classList.toggle('downvoted', wasDown);
+                });
                 return;
             }
 
