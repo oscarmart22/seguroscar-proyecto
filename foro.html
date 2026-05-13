@@ -182,27 +182,6 @@
             color: #777;
         }
         .error-msg { color: #ff4d6a; }
-        .post-category {
-            display: inline-block;
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 4px;
-            margin-right: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 1px solid rgba(0, 212, 255, 0.2);
-        }
-        .char-counter {
-            font-size: 0.8rem;
-            color: #777;
-            margin-left: auto;
-        }
-        .char-counter.limit {
-            color: #ff4d6a;
-        }
 
         /* ── Responsive ── */
         @media (max-width: 600px) {
@@ -279,21 +258,11 @@
             </div>
         </div>
 
-        <div id="postFormCard" class="glass-card post-form-card" style="display: none;">
+        <div id="postFormCard" class="glass-card post-form-card">
             <h3>Crear una publicación</h3>
             <form id="newPostForm">
-                <textarea id="postContent" class="post-input" placeholder="¿Qué tienes en mente?" required maxlength="300"></textarea>
-                <div style="display: flex; justify-content: flex-end; margin-top: -0.5rem; margin-bottom: 1rem;">
-                    <span id="charCount" class="char-counter">0 / 300</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                    <select id="postCategory" class="post-input" style="width: auto; min-height: unset; padding: 0.6rem 1rem; font-size: 0.9rem;" required>
-                        <option value="" disabled selected>Selecciona una categoría</option>
-                        <option value="Dudas Técnicas">Dudas Técnicas</option>
-                        <option value="Noticias">Noticias</option>
-                        <option value="Experiencias">Experiencias</option>
-                        <option value="Seguridad Biométrica">Seguridad Biométrica</option>
-                    </select>
+                <textarea id="postContent" class="post-input" placeholder="¿Qué tienes en mente?" required></textarea>
+                <div style="display: flex; align-items: center; gap: 1rem;">
                     <button type="submit" class="btn btn--primary" id="submitPostBtn">Publicar</button>
                     <span id="postMsg" style="font-size: 0.9rem;"></span>
                 </div>
@@ -378,7 +347,6 @@
                 + '<div class="post-content-area" style="width:100%;">'
                 +   '<div class="post-header">'
                 +     '<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex-grow:1;">'
-                +       '<span class="post-category">' + esc(post.category || 'General') + '</span>'
                 +       '<span class="post-author">' + esc(post.username) + '</span>'
                 +       adminBadge
                 +       '<span class="post-time" title="' + esc(post.timestamp || '') + '">' + formatTimeAgo(post.timestamp) + '</span>'
@@ -499,28 +467,12 @@
         }
 
         // New Post
-        var postContent = document.getElementById('postContent');
-        var charCount = document.getElementById('charCount');
-        
-        if (postContent && charCount) {
-            postContent.addEventListener('input', function() {
-                var len = postContent.value.length;
-                charCount.textContent = len + ' / 300';
-                if (len >= 300) {
-                    charCount.classList.add('limit');
-                } else {
-                    charCount.classList.remove('limit');
-                }
-            });
-        }
-
         document.getElementById('newPostForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            var content = postContent.value.trim();
-            var category = document.getElementById('postCategory').value;
+            var content = document.getElementById('postContent').value.trim();
             var btn = document.getElementById('submitPostBtn');
             var msg = document.getElementById('postMsg');
-            if (!content || !category) return;
+            if (!content) return;
 
             btn.disabled = true;
             msg.style.color = '#999';
@@ -529,7 +481,7 @@
             fetch('/api/posts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: content, category: category, parent_id: null })
+                body: JSON.stringify({ content: content, parent_id: null })
             })
             .then(function(res) { return res.json(); })
             .then(function(data) {
@@ -541,10 +493,7 @@
                 }
                 msg.style.color = '#00ffa3';
                 msg.textContent = '¡Publicado!';
-                postContent.value = '';
-                charCount.textContent = '0 / 300';
-                charCount.classList.remove('limit');
-                document.getElementById('postCategory').selectedIndex = 0;
+                document.getElementById('postContent').value = '';
                 setTimeout(function() { msg.textContent = ''; }, 3000);
 
                 if (data.post) {

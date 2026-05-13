@@ -38,7 +38,6 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
     content = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(50), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('posts', lazy=True))
@@ -160,7 +159,6 @@ def serialize_post(post, current_user_id=None):
         "username": autor,
         "is_admin": is_admin,
         "content": post.content,
-        "category": post.category or "General",
         "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S") if post.timestamp else "",
         "parent_id": post.parent_id,
         "replies": [serialize_post(reply, current_user_id) for reply in (post.replies or [])]
@@ -178,13 +176,12 @@ def api_posts():
             return jsonify({"error": "Datos inválidos"}), 400
 
         content = data.get('content', '').strip() if data else ''
-        category = data.get('category', 'General') if data else 'General'
         parent_id = data.get('parent_id') if data else None
 
         if not content:
             return jsonify({"error": "El contenido no puede estar vacío"}), 400
 
-        new_post = Post(user_id=current_user.id, content=content, category=category, parent_id=parent_id)
+        new_post = Post(user_id=current_user.id, content=content, parent_id=parent_id)
         db.session.add(new_post)
         db.session.commit()
         db.session.refresh(new_post)
