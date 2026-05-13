@@ -32,6 +32,7 @@
             font-family: inherit;
             margin-bottom: 1rem;
             resize: vertical;
+            box-sizing: border-box;
         }
         .post-input:focus {
             outline: none;
@@ -45,7 +46,7 @@
             border-radius: var(--radius-lg);
             margin-bottom: 2rem;
         }
-        
+
         .post-card {
             background: var(--color-bg-card);
             border: 1px solid var(--color-border);
@@ -54,41 +55,44 @@
             margin-bottom: 1rem;
             display: flex;
             gap: 1rem;
-            transition: transform var(--transition-fast);
+            transition: border-color 0.2s ease;
         }
         .post-card:hover { border-color: var(--color-border-hover); }
         .post-votes {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.25rem;
             min-width: 40px;
+            flex-shrink: 0;
         }
         .vote-btn {
             background: none;
             border: none;
             color: var(--color-text-muted);
             cursor: pointer;
-            padding: 4px;
+            padding: 6px;
             border-radius: 4px;
+            font-size: 1rem;
+            line-height: 1;
         }
         .vote-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--color-text); }
         .vote-count { font-weight: 600; font-size: 0.9rem; }
-        
-        .post-content-area { flex-grow: 1; }
+
+        .post-content-area { flex-grow: 1; min-width: 0; }
         .post-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.5rem;
             font-size: 0.85rem;
             color: var(--color-text-muted);
+            flex-wrap: wrap;
+            gap: 0.25rem;
         }
         .post-author { font-weight: 600; color: var(--color-text); }
-        .post-body { line-height: 1.6; color: var(--color-text); white-space: pre-wrap;}
-        
-        .post-actions {
-            margin-top: 1rem;
-        }
+        .post-body { line-height: 1.6; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
+
+        .post-actions { margin-top: 0.75rem; }
         .btn-reply {
             background: none;
             border: none;
@@ -96,20 +100,35 @@
             font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
+            padding: 0;
         }
         .btn-reply:hover { text-decoration: underline; }
-        
+
+        /* Reply thread indentation */
         .reply-container {
-            margin-left: 2.5rem;
-            border-left: 2px solid rgba(255,255,255,0.1);
+            margin-left: 2rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.08);
             padding-left: 1rem;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
         }
+        .reply-container .post-card {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
         .reply-form {
             display: none;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
         }
         .reply-form.active { display: block; }
+        .reply-form .post-input { min-height: 60px; }
+
+        .empty-msg, .error-msg {
+            text-align: center;
+            padding: 2rem;
+        }
+        .error-msg { color: var(--color-danger); }
     </style>
 </head>
 <body>
@@ -146,7 +165,7 @@
 
         <div id="loginPrompt" class="login-prompt">
             <p>Debes iniciar sesión para publicar en el foro.</p>
-            <a href="/" class="btn btn--primary" style="margin-top: 1rem;">Ir al inicio a loguearse</a>
+            <a href="/" class="btn btn--primary" style="margin-top: 1rem; display: inline-block;">Ir al inicio a loguearse</a>
         </div>
 
         <div id="postFormCard" class="post-form-card">
@@ -159,219 +178,255 @@
         </div>
 
         <div id="postsList">
-            <p style="text-align: center; color: var(--color-text-muted);">Cargando publicaciones...</p>
+            <p class="empty-msg" style="color: var(--color-text-muted);">Cargando publicaciones...</p>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            let loggedIn = false;
+    (function() {
+        'use strict';
 
-            fetch('/api/me')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.logged_in) {
-                        loggedIn = true;
-                        document.getElementById('loginPrompt').style.display = 'none';
-                        document.getElementById('postFormCard').style.display = 'block';
-                    }
-                    loadPosts();
+        let loggedIn = false;
+        const postsList = document.getElementById('postsList');
+
+        // ─── Escape HTML to prevent XSS ───
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // ─── Build HTML for a single post + its replies recursively ───
+        function buildPostHtml(post) {
+            const score = (post.upvotes || 0) - (post.downvotes || 0);
+            let repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
+            if (post.replies && post.replies.length > 0) {
+                post.replies.forEach(function(r) { repliesHtml += buildPostHtml(r); });
+            }
+            repliesHtml += '</div>';
+
+            return '<div class="post-card" id="post-' + post.id + '">'
+                + '<div class="post-votes">'
+                +   '<button class="vote-btn" data-vote-id="' + post.id + '" data-vote-type="up" title="Upvote">&#9650;</button>'
+                +   '<span class="vote-count" id="vote-count-' + post.id + '">' + score + '</span>'
+                +   '<button class="vote-btn" data-vote-id="' + post.id + '" data-vote-type="down" title="Downvote">&#9660;</button>'
+                + '</div>'
+                + '<div class="post-content-area">'
+                +   '<div class="post-header">'
+                +     '<span class="post-author">' + esc(post.username) + '</span>'
+                +     '<span>' + esc(post.timestamp || '') + '</span>'
+                +   '</div>'
+                +   '<div class="post-body">' + esc(post.content) + '</div>'
+                +   '<div class="post-actions">'
+                +     '<button class="btn-reply" data-reply-id="' + post.id + '">Responder</button>'
+                +   '</div>'
+                +   '<form class="reply-form" id="reply-form-' + post.id + '">'
+                +     '<textarea class="post-input" style="min-height:60px;" id="reply-content-' + post.id + '" placeholder="Escribe tu respuesta..." required></textarea>'
+                +     '<button type="submit" class="btn btn--primary" style="font-size:0.85rem; padding:0.5rem 1rem;" data-submit-reply="' + post.id + '">Responder</button>'
+                +   '</form>'
+                +   repliesHtml
+                + '</div>'
+              + '</div>';
+        }
+
+        // ─── Load all posts from backend ───
+        function loadPosts() {
+            fetch('/api/posts')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
                 })
-                .catch(() => {
-                    document.getElementById('postsList').innerHTML = '<p style="text-align:center; color:var(--color-danger);">Error de conexión con el servidor.</p>';
+                .then(function(posts) {
+                    postsList.innerHTML = '';
+                    if (!posts || !Array.isArray(posts) || posts.length === 0) {
+                        postsList.innerHTML = '<p class="empty-msg" style="color:var(--color-text-muted);">Aún no hay publicaciones. ¡Sé el primero!</p>';
+                        return;
+                    }
+                    var html = '';
+                    posts.forEach(function(post) { html += buildPostHtml(post); });
+                    postsList.innerHTML = html;
+                })
+                .catch(function() {
+                    postsList.innerHTML = '<p class="error-msg">Error al cargar las publicaciones. Intenta recargar la página.</p>';
                 });
+        }
 
-            const postsList = document.getElementById('postsList');
-
-            function createPostHtml(post, isReply = false) {
-                const totalVotes = post.upvotes - post.downvotes;
-                let repliesHtml = '';
-                
-                if (post.replies && post.replies.length > 0) {
-                    repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
-                    post.replies.forEach(reply => {
-                        repliesHtml += createPostHtml(reply, true);
-                    });
-                    repliesHtml += '</div>';
-                } else {
-                    repliesHtml = '<div class="reply-container" id="replies-' + post.id + '"></div>';
+        // ─── Check auth and then load posts ───
+        fetch('/api/me')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.logged_in) {
+                    loggedIn = true;
+                    document.getElementById('loginPrompt').style.display = 'none';
+                    document.getElementById('postFormCard').style.display = 'block';
                 }
-
-                return `
-                    <div class="post-card" id="post-${post.id}">
-                        <div class="post-votes">
-                            <button class="vote-btn" onclick="vote(${post.id}, 'up')" title="Upvote">▲</button>
-                            <span class="vote-count" id="vote-count-${post.id}">${totalVotes}</span>
-                            <button class="vote-btn" onclick="vote(${post.id}, 'down')" title="Downvote">▼</button>
-                        </div>
-                        <div class="post-content-area">
-                            <div class="post-header">
-                                <span class="post-author">${post.username}</span>
-                                <span>${post.timestamp}</span>
-                            </div>
-                            <div class="post-body">${escapeHtml(post.content)}</div>
-                            <div class="post-actions">
-                                <button class="btn-reply" onclick="toggleReplyForm(${post.id})">Responder</button>
-                            </div>
-                            <form class="reply-form" id="reply-form-${post.id}" onsubmit="submitReply(event, ${post.id})">
-                                <textarea class="post-input" style="min-height: 60px;" id="reply-content-${post.id}" placeholder="Escribe tu respuesta..." required></textarea>
-                                <button type="submit" class="btn btn--primary btn--sm" id="reply-btn-${post.id}">Responder</button>
-                            </form>
-                            ${repliesHtml}
-                        </div>
-                    </div>
-                `;
-            }
-
-            function loadPosts() {
-                fetch('/api/posts')
-                    .then(res => res.json())
-                    .then(posts => {
-                        postsList.innerHTML = '';
-                        if (!posts || posts.length === 0) {
-                            postsList.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Aún no hay publicaciones. ¡Sé el primero!</p>';
-                            return;
-                        }
-                        
-                        posts.forEach(post => {
-                            postsList.innerHTML += createPostHtml(post);
-                        });
-                    })
-                    .catch(() => {
-                        postsList.innerHTML = '<p style="text-align: center; color: var(--color-danger);">Error al cargar las publicaciones.</p>';
-                    });
-            }
-
-            // New Post form
-            document.getElementById('newPostForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const content = document.getElementById('postContent').value;
-                const btn = document.getElementById('submitPostBtn');
-                const msg = document.getElementById('postMsg');
-                
-                btn.disabled = true;
-                msg.textContent = 'Publicando...';
-                
-                fetch('/api/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: content, parent_id: null })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    btn.disabled = false;
-                    if (data.error) {
-                        msg.style.color = 'var(--color-danger)';
-                        msg.textContent = data.error;
-                    } else {
-                        msg.style.color = '#00ffa3';
-                        msg.textContent = 'Publicado exitosamente';
-                        document.getElementById('postContent').value = '';
-                        setTimeout(() => msg.textContent = '', 3000);
-                        
-                        // Añadir instantáneamente al inicio de la lista
-                        if (data.post) {
-                            // Remover mensaje de "No hay publicaciones" si existe
-                            if(postsList.querySelector('p')) {
-                                postsList.innerHTML = '';
-                            }
-                            postsList.insertAdjacentHTML('afterbegin', createPostHtml(data.post));
-                        }
-                    }
-                })
-                .catch(() => {
-                    btn.disabled = false;
-                    msg.style.color = 'var(--color-danger)';
-                    msg.textContent = 'Error de conexión';
-                });
+                loadPosts();
+            })
+            .catch(function() {
+                loadPosts();
             });
 
-            window.toggleReplyForm = function(postId) {
-                if (!loggedIn) {
-                    alert("Debes iniciar sesión para responder.");
+        // ─── New Post form ───
+        document.getElementById('newPostForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var content = document.getElementById('postContent').value.trim();
+            var btn = document.getElementById('submitPostBtn');
+            var msg = document.getElementById('postMsg');
+
+            if (!content) return;
+
+            btn.disabled = true;
+            msg.style.color = 'var(--color-text-muted)';
+            msg.textContent = 'Publicando...';
+
+            fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content, parent_id: null })
+            })
+            .then(function(res) {
+                if (!res.ok && res.status === 401) {
+                    return res.json().then(function(d) { throw new Error(d.error || 'No autenticado'); });
+                }
+                return res.json();
+            })
+            .then(function(data) {
+                btn.disabled = false;
+                if (data.error) {
+                    msg.style.color = 'var(--color-danger)';
+                    msg.textContent = data.error;
                     return;
                 }
-                const form = document.getElementById('reply-form-' + postId);
-                form.classList.toggle('active');
-            };
+                msg.style.color = '#00ffa3';
+                msg.textContent = '¡Publicado!';
+                document.getElementById('postContent').value = '';
+                setTimeout(function() { msg.textContent = ''; }, 3000);
 
-            window.submitReply = function(e, parentId) {
+                // Prepend new post instantly
+                if (data.post) {
+                    // Remove "no posts" placeholder if present
+                    var placeholder = postsList.querySelector('.empty-msg');
+                    if (placeholder) placeholder.remove();
+
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = buildPostHtml(data.post);
+                    postsList.prepend(tmp.firstElementChild);
+                }
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                msg.style.color = 'var(--color-danger)';
+                msg.textContent = err.message || 'Error de conexión';
+            });
+        });
+
+        // ─── Event Delegation for votes, replies, and reply submit ───
+        postsList.addEventListener('click', function(e) {
+            var target = e.target;
+
+            // VOTE buttons
+            if (target.classList.contains('vote-btn')) {
                 e.preventDefault();
-                const contentInput = document.getElementById('reply-content-' + parentId);
-                const btn = document.getElementById('reply-btn-' + parentId);
-                const content = contentInput.value;
-                
-                btn.disabled = true;
-                btn.textContent = 'Enviando...';
+                var postId = target.getAttribute('data-vote-id');
+                var voteType = target.getAttribute('data-vote-type');
+                if (!postId || !voteType) return;
 
-                fetch('/api/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: content, parent_id: parentId })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    btn.disabled = false;
-                    btn.textContent = 'Responder';
-                    if (data.error) {
-                        alert(data.error);
-                    } else {
-                        contentInput.value = '';
-                        document.getElementById('reply-form-' + parentId).classList.remove('active');
-                        // Añadir respuesta instantáneamente al contenedor de respuestas
-                        if (data.post) {
-                            const repliesContainer = document.getElementById('replies-' + parentId);
-                            repliesContainer.insertAdjacentHTML('beforeend', createPostHtml(data.post, true));
-                        }
-                    }
-                })
-                .catch(() => {
-                    btn.disabled = false;
-                    btn.textContent = 'Responder';
-                    alert('Error de conexión');
-                });
-            };
-
-            window.vote = function(postId, type) {
                 if (!loggedIn) {
-                    alert("Debes iniciar sesión para votar");
+                    alert('Debes iniciar sesión para votar.');
                     return;
                 }
 
-                // Optimistic UI update
-                const countSpan = document.getElementById('vote-count-' + postId);
-                let currentCount = parseInt(countSpan.textContent);
-                if (type === 'up') countSpan.textContent = currentCount + 1;
-                else countSpan.textContent = currentCount - 1;
+                // Optimistic update
+                var countSpan = document.getElementById('vote-count-' + postId);
+                var oldCount = parseInt(countSpan.textContent) || 0;
+                countSpan.textContent = voteType === 'up' ? oldCount + 1 : oldCount - 1;
 
                 fetch('/api/vote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: postId, vote_type: type })
+                    body: JSON.stringify({ post_id: parseInt(postId), vote_type: voteType })
                 })
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.error) {
-                        alert(data.error);
-                        // Revert optimistic update
-                        countSpan.textContent = currentCount;
+                        countSpan.textContent = oldCount; // revert
                     }
                 })
-                .catch(() => {
-                    // Revert optimistic update
-                    countSpan.textContent = currentCount;
+                .catch(function() {
+                    countSpan.textContent = oldCount; // revert
                 });
-            };
+                return;
+            }
 
-            function escapeHtml(unsafe) {
-                return unsafe
-                     .replace(/&/g, "&amp;")
-                     .replace(/</g, "&lt;")
-                     .replace(/>/g, "&gt;")
-                     .replace(/"/g, "&quot;")
-                     .replace(/'/g, "&#039;");
+            // REPLY toggle button
+            if (target.classList.contains('btn-reply')) {
+                e.preventDefault();
+                var replyId = target.getAttribute('data-reply-id');
+                if (!loggedIn) {
+                    alert('Debes iniciar sesión para responder.');
+                    return;
+                }
+                var form = document.getElementById('reply-form-' + replyId);
+                if (form) form.classList.toggle('active');
+                return;
+            }
+
+            // REPLY submit button
+            if (target.getAttribute('data-submit-reply')) {
+                // handled by form submit event below
             }
         });
+
+        // Reply form submissions via event delegation
+        postsList.addEventListener('submit', function(e) {
+            if (!e.target.classList.contains('reply-form')) return;
+            e.preventDefault();
+
+            var form = e.target;
+            var parentId = form.id.replace('reply-form-', '');
+            var contentInput = document.getElementById('reply-content-' + parentId);
+            var btn = form.querySelector('button[type="submit"]');
+            var content = contentInput.value.trim();
+
+            if (!content) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content, parent_id: parseInt(parentId) })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.textContent = 'Responder';
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                contentInput.value = '';
+                form.classList.remove('active');
+
+                // Append reply instantly
+                if (data.post) {
+                    var repliesContainer = document.getElementById('replies-' + parentId);
+                    if (repliesContainer) {
+                        var tmp = document.createElement('div');
+                        tmp.innerHTML = buildPostHtml(data.post);
+                        repliesContainer.appendChild(tmp.firstElementChild);
+                    }
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = 'Responder';
+                alert('Error de conexión. Intenta de nuevo.');
+            });
+        });
+
+    })();
     </script>
 </body>
 </html>
