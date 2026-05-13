@@ -102,7 +102,8 @@ def register():
     db.session.commit()
 
     login_user(new_user, remember=True)
-    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username}), 201
+    next_url = request.args.get('next')
+    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "next": next_url}), 201
 
 @app.route('/login', methods=['POST'])
 def login():
