@@ -1,21 +1,29 @@
 import os
-from datetime import datetime
-from flask import Flask, request, jsonify, session, send_from_directory
+from datetime import datetime, timedelta
+from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'seguroscar-super-secret-key-123')
+app.config['SECRET_KEY'] = 'una_llave_muy_segura_y_larga_12345'
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 ADMIN_USERNAME = 'oscarmart22'
 
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
 # ─── Models ───
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -93,8 +101,7 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    session['user_id'] = new_user.id
-    session['username'] = new_user.username
+    login_user(new_user, remember=True)
     return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username}), 201
 
 @app.route('/login', methods=['POST'])
@@ -112,22 +119,21 @@ def login():
     user = User.query.filter_by(username=username).first()
 
     if user and check_password_hash(user.password_hash, password):
-        session['user_id'] = user.id
-        session['username'] = user.username
+        login_user(user, remember=True)
         return jsonify({"message": "Inicio de sesión exitoso", "username": user.username}), 200
 
     return jsonify({"error": "Credenciales inválidas"}), 401
 
 @app.route('/logout', methods=['POST'])
+@login_required
 def logout():
-    session.pop('user_id', None)
-    session.pop('username', None)
+    logout_user()
     return jsonify({"message": "Sesión cerrada"}), 200
 
 @app.route('/api/me', methods=['GET'])
 def get_me():
-    if 'user_id' in session:
-        return jsonify({"logged_in": True, "username": session['username']})
+    if current_user.is_authenticated:
+        return jsonify({"logged_in": True, "username": current_user.username})
     return jsonify({"logged_in": False})
 
 @app.route('/foro')
@@ -167,16 +173,9 @@ def serialize_post(post, current_user_id=None):
 
 @app.route('/api/posts', methods=['GET', 'POST'])
 def api_posts():
-    current_uid = session.get('user_id')
-
     if request.method == 'POST':
-        if not current_uid:
+        if not current_user.is_authenticated:
             return jsonify({"error": "No autenticado"}), 401
-
-        current_user = db.session.get(User, current_uid)
-        if not current_user:
-            session.clear()
-            return jsonify({"error": "Sesión inválida. Inicia sesión de nuevo."}), 401
 
         try:
             data = request.get_json(force=True)
@@ -196,16 +195,17 @@ def api_posts():
 
         return jsonify({
             "message": "Post creado",
-            "post": serialize_post(new_post, current_uid)
+            "post": serialize_post(new_post, current_user.id)
         }), 201
 
     # GET
+    current_uid = current_user.id if current_user.is_authenticated else None
     posts = Post.query.filter_by(parent_id=None).order_by(Post.timestamp.desc()).all()
     return jsonify([serialize_post(p, current_uid) for p in posts]), 200
 
 @app.route('/api/vote', methods=['POST'])
 def api_vote():
-    if 'user_id' not in session:
+    if not current_user.is_authenticated:
         return jsonify({"error": "No autenticado"}), 401
     try:
         data = request.get_json(force=True)
@@ -223,7 +223,7 @@ def api_vote():
         return jsonify({"error": "Post no encontrado"}), 404
 
     new_value = 1 if vote_type == 'up' else -1
-    user_id = session['user_id']
+    user_id = current_user.id
 
     existing_vote = Vote.query.filter_by(user_id=user_id, post_id=post_id).first()
 
