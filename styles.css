@@ -142,6 +142,7 @@ h1, h2, h3, h4, h5, h6 {
     text-decoration: none;
     position: relative;
     overflow: hidden;
+    min-height: 44px;
 }
 
 .btn--primary {
@@ -191,11 +192,9 @@ h1, h2, h3, h4, h5, h6 {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(1.2);
-    min-width: 120%;
-    min-height: 120%;
-    width: auto;
-    height: auto;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100vh;
     object-fit: cover;
     z-index: 0;
     opacity: 0.85;
@@ -206,8 +205,10 @@ h1, h2, h3, h4, h5, h6 {
     top: 215px;
     left: 50%;
     transform: translateX(-50%);
-    width: 801px;
-    height: 384px;
+    width: 80vw;
+    max-width: 801px;
+    height: 40vh;
+    max-height: 384px;
     border-radius: 9999px;
     background: rgba(0, 0, 0, 0.4);
     filter: blur(77.5px);
@@ -280,8 +281,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar__logo:hover { color: var(--color-text-heading); }
-
-
 
 .navbar__nav-links {
     display: flex;
@@ -1890,4 +1889,36 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+/* Responsive Optimization for Render */
+@media (max-width: 768px) {
+    /* Touch friendly sizes */
+    .btn, .hero-btn, .navbar__btn, button {
+        min-height: 44px !important;
+    }
 
+    /* Stack elements vertically and occupy full width */
+    .hero-section__cta-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .hero-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .stats-grid, .problem-grid, .help-grid, .pricing-grid, .market-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+    }
+    
+    img, video, iframe {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .hero-section__video {
+        height: 100vh;
+        object-fit: cover;
+    }
+}
