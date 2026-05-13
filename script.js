@@ -296,6 +296,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.location.reload();
                         });
                     });
+                    
+                    const mobileAuth = document.getElementById('mobileAuthContainer');
+                    if (mobileAuth) {
+                        mobileAuth.innerHTML = `
+                            <span class="navbar__link" style="color: var(--color-text-heading); font-weight: 600;">Hola, ${data.username}</span>
+                            <a href="#" id="mobileLogoutBtn" class="navbar__link" style="color: var(--color-danger);">Cerrar Sesión</a>
+                        `;
+                        document.getElementById('mobileLogoutBtn').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            fetch('/logout', { method: 'POST' }).then(() => window.location.reload());
+                        });
+                    }
                 } else {
                     // Make sure login btn listener is re-attached if rendered again
                     const loginBtn = document.getElementById('loginBtn');
@@ -303,6 +315,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         loginBtn.addEventListener('click', (e) => {
                             e.preventDefault();
                             openModal(true);
+                        });
+                    }
+                    
+                    const mobileAuth = document.getElementById('mobileAuthContainer');
+                    if (mobileAuth) {
+                        mobileAuth.innerHTML = `<a href="/login" class="navbar__link" id="mobileLoginBtnFallback">Iniciar Sesión</a>`;
+                        document.getElementById('mobileLoginBtnFallback').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            openModal(true);
+                            const navToggle = document.getElementById('navToggle');
+                            if(navToggle && navToggle.classList.contains('active')) navToggle.click();
                         });
                     }
                 }
