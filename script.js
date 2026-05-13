@@ -34,6 +34,59 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = '';
     }
 
+    // --- Password Strength Logic ---
+    const passwordInput = document.getElementById('password');
+    const strengthMeter = document.getElementById('passwordStrength');
+    const strengthFill = document.querySelector('.strength-meter-fill');
+    const strengthText = document.getElementById('passwordStrengthText');
+
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => {
+            // Only show strength meter for registration
+            if (isLoginMode) {
+                if (strengthMeter) strengthMeter.style.display = 'none';
+                if (strengthText) strengthText.style.display = 'none';
+                return;
+            }
+            const val = passwordInput.value;
+            if (!val) {
+                if (strengthMeter) strengthMeter.style.display = 'none';
+                if (strengthText) strengthText.style.display = 'none';
+                return;
+            }
+            if (strengthMeter) strengthMeter.style.display = 'block';
+            if (strengthText) strengthText.style.display = 'block';
+            
+            let score = 0;
+            if (val.length >= 8) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+            
+            let color = '#ff4d6a'; // weak
+            let width = '33%';
+            let label = 'Débil';
+            
+            if (score === 2) {
+                color = '#ffd166'; // medium
+                width = '66%';
+                label = 'Media';
+            } else if (score === 3) {
+                color = '#00ffa3'; // strong
+                width = '100%';
+                label = 'Fuerte';
+            }
+            
+            if (strengthFill) {
+                strengthFill.style.width = width;
+                strengthFill.style.backgroundColor = color;
+            }
+            if (strengthText) {
+                strengthText.textContent = 'Fuerza: ' + label;
+                strengthText.style.color = color;
+            }
+        });
+    }
+
     if (navToggle) {
         navToggle.addEventListener('click', () => {
             navToggle.classList.add('active');
@@ -443,7 +496,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(payload)
             })
-            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(res => {
+                return res.json()
+                    .catch(() => ({ error: 'Respuesta inválida del servidor' }))
+                    .then(data => ({ status: res.status, body: data }));
+            })
             .then(res => {
                 authSubmit.disabled = false;
                 if (res.status >= 200 && res.status < 300) {
@@ -454,20 +511,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         closeAuthModal();
                         checkAuth();
-                        // If we are on /login or /register page directly, redirect to / to clear url
                         if (window.location.pathname === '/login' || window.location.pathname === '/register') {
                             window.location.href = '/';
                         }
                     }
                 } else {
-                    authError.textContent = res.body.error || 'Ocurrió un error inesperado';
+                    authError.textContent = res.body.error || 'Error en la petición';
                     authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
                 }
             })
             .catch(err => {
                 authSubmit.disabled = false;
-                authError.textContent = 'Error de conexión';
+                authError.textContent = 'Error de conexión o seguridad';
                 authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
+                console.error("Auth Error:", err);
             });
         });
     }

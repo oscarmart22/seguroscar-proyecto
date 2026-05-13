@@ -127,7 +127,6 @@ def register():
             return jsonify({"error": "El usuario ya existe"}), 400
 
         hashed_password = generate_password_hash(password)
-        # By default is_admin is False (set in model)
         new_user = User(username=username, password_hash=hashed_password, is_admin=False)
         db.session.add(new_user)
         db.session.commit()
@@ -135,11 +134,13 @@ def register():
         login_user(new_user, remember=True)
         return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "is_admin": new_user.is_admin}), 201
     
-    # Validation errors
-    errors = []
-    for field, msg_list in form.errors.items():
-        errors.append(f"{field}: {', '.join(msg_list)}")
-    return jsonify({"error": ". ".join(errors)}), 400
+    if request.method == 'POST':
+        # Collect validation errors
+        errors = []
+        for field, messages in form.errors.items():
+            field_label = getattr(form, field).label.text
+            errors.append(f"{field_label}: {', '.join(messages)}")
+        return jsonify({"error": ". ".join(errors)}), 400
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
