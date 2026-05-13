@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory, abort, make_response
+from flask import Flask, request, jsonify, send_from_directory, abort, make_response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,7 +8,7 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder='.', static_url_path='', template_folder='.')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
@@ -93,13 +93,13 @@ def internal_error(e):
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def register():
     if request.method == 'GET':
-        return send_from_directory('.', 'index.html')
+        return render_template('index.html')
 
     try:
         data = request.get_json(force=True)
@@ -134,7 +134,7 @@ def register():
 @limiter.limit("5 per minute")
 def login():
     if request.method == 'GET':
-        return send_from_directory('.', 'index.html')
+        return render_template('index.html')
 
     try:
         data = request.get_json(force=True)
@@ -168,7 +168,7 @@ def get_me():
 
 @app.route('/foro')
 def foro():
-    return send_from_directory('.', 'foro.html')
+    return render_template('foro.html')
 
 # ─── Forum API ───
 
