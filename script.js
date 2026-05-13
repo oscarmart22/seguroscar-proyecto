@@ -313,6 +313,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize check
     checkAuth();
 
+    // Auto-open modal if URL path is /login or /register
+    if (window.location.pathname === '/login') {
+        openModal(true);
+    } else if (window.location.pathname === '/register') {
+        openModal(false);
+    }
+
     function openModal(loginMode) {
         isLoginMode = loginMode;
         authError.textContent = '';
@@ -377,8 +384,18 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => {
                 authSubmit.disabled = false;
                 if (res.status >= 200 && res.status < 300) {
-                    closeAuthModal();
-                    checkAuth();
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const nextUrl = urlParams.get('next');
+                    if (nextUrl) {
+                        window.location.href = nextUrl;
+                    } else {
+                        closeAuthModal();
+                        checkAuth();
+                        // If we are on /login or /register page directly, redirect to / to clear url
+                        if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+                            window.location.href = '/';
+                        }
+                    }
                 } else {
                     authError.textContent = res.body.error || 'Ocurrió un error inesperado';
                     authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';

@@ -78,8 +78,11 @@ def internal_error(e):
 def index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'GET':
+        return send_from_directory('.', 'index.html')
+
     try:
         data = request.get_json(force=True)
     except Exception:
@@ -102,11 +105,13 @@ def register():
     db.session.commit()
 
     login_user(new_user, remember=True)
-    next_url = request.args.get('next')
-    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "next": next_url}), 201
+    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        return send_from_directory('.', 'index.html')
+
     try:
         data = request.get_json(force=True)
     except Exception:
