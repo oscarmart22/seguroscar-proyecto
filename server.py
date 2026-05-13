@@ -5,6 +5,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import DataRequired, Length, EqualTo
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -39,6 +42,16 @@ def set_csrf_cookie(response):
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+# ─── Forms ───
+class RegistrationForm(FlaskForm):
+    username = StringField('username', validators=[DataRequired(), Length(min=2, max=80)])
+    password = PasswordField('password', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('confirm_password', validators=[DataRequired(), EqualTo('password', message='Las contraseñas deben coincidir')])
+
+class LoginForm(FlaskForm):
+    username = StringField('username', validators=[DataRequired()])
+    password = PasswordField('password', validators=[DataRequired()])
 
 # ─── Models ───
 
@@ -98,61 +111,58 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def register():
+    form = RegistrationForm()
     if request.method == 'GET':
-        return render_template('index.html')
+        return render_template('index.html', form=form)
 
-    try:
-        data = request.get_json(force=True)
-    except Exception:
-        return jsonify({"error": "Datos inválidos"}), 400
-    if not data:
-        return jsonify({"error": "Datos inválidos"}), 400
+    # For AJAX JSON compatibility with Flask-WTF
+    if request.is_json:
+        form = RegistrationForm(data=request.get_json())
+    
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        password = form.password.data
 
-    username = data.get('username', '').strip()
-    password = data.get('password', '')
+        if User.query.filter_by(username=username).first():
+            return jsonify({"error": "El usuario ya existe"}), 400
 
-    if not username or not password:
-        return jsonify({"error": "Usuario y contraseña son requeridos"}), 400
+        hashed_password = generate_password_hash(password)
+        # By default is_admin is False (set in model)
+        new_user = User(username=username, password_hash=hashed_password, is_admin=False)
+        db.session.add(new_user)
+        db.session.commit()
 
-    if len(password) < 8:
-        return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
-
-    if User.query.filter_by(username=username).first():
-        return jsonify({"error": "El usuario ya existe"}), 400
-
-    hashed_password = generate_password_hash(password)
-    # Autocreate admin for specific user just in case, but using the column now
-    is_admin = (username == 'oscarmart22') 
-    new_user = User(username=username, password_hash=hashed_password, is_admin=is_admin)
-    db.session.add(new_user)
-    db.session.commit()
-
-    login_user(new_user, remember=True)
-    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "is_admin": new_user.is_admin}), 201
+        login_user(new_user, remember=True)
+        return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "is_admin": new_user.is_admin}), 201
+    
+    # Validation errors
+    errors = []
+    for field, msg_list in form.errors.items():
+        errors.append(f"{field}: {', '.join(msg_list)}")
+    return jsonify({"error": ". ".join(errors)}), 400
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def login():
+    form = LoginForm()
     if request.method == 'GET':
-        return render_template('index.html')
+        return render_template('index.html', form=form)
 
-    try:
-        data = request.get_json(force=True)
-    except Exception:
-        return jsonify({"error": "Datos inválidos"}), 400
-    if not data:
-        return jsonify({"error": "Datos inválidos"}), 400
+    if request.is_json:
+        form = LoginForm(data=request.get_json())
 
-    username = data.get('username', '').strip()
-    password = data.get('password', '')
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        password = form.password.data
+        user = User.query.filter_by(username=username).first()
 
-    user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user, remember=True)
+            return jsonify({"message": "Inicio de sesión exitoso", "username": user.username, "is_admin": user.is_admin}), 200
 
-    if user and check_password_hash(user.password_hash, password):
-        login_user(user, remember=True)
-        return jsonify({"message": "Inicio de sesión exitoso", "username": user.username, "is_admin": user.is_admin}), 200
-
-    return jsonify({"error": "Credenciales inválidas"}), 401
+        return jsonify({"error": "Credenciales inválidas"}), 401
+    
+    return jsonify({"error": "Datos inválidos"}), 400
 
 @app.route('/logout', methods=['POST'])
 @login_required

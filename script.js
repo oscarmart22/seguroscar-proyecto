@@ -373,16 +373,23 @@ document.addEventListener('DOMContentLoaded', () => {
         authError.textContent = '';
         authForm.reset();
         
+        const confirmGroup = document.getElementById('confirmPasswordGroup');
+        const confirmInput = document.getElementById('confirm_password');
+
         if (isLoginMode) {
             modalTitle.textContent = 'Iniciar Sesión';
             authSubmit.textContent = 'Ingresar';
             authToggleText.textContent = '¿No tienes cuenta?';
             authToggleLink.textContent = 'Regístrate';
+            if (confirmGroup) confirmGroup.style.display = 'none';
+            if (confirmInput) confirmInput.required = false;
         } else {
             modalTitle.textContent = 'Crear Cuenta';
             authSubmit.textContent = 'Registrarse';
             authToggleText.textContent = '¿Ya tienes cuenta?';
             authToggleLink.textContent = 'Inicia sesión';
+            if (confirmGroup) confirmGroup.style.display = 'block';
+            if (confirmInput) confirmInput.required = true;
         }
         
         authModal.classList.add('active');
@@ -420,6 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('password').value;
             const endpoint = isLoginMode ? '/login' : '/register';
             
+            const payload = { username, password };
+            if (!isLoginMode) {
+                payload.confirm_password = document.getElementById('confirm_password').value;
+            }
+
             authSubmit.disabled = true;
             authSubmit.textContent = 'Procesando...';
 
@@ -429,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify(payload)
             })
             .then(res => res.json().then(data => ({ status: res.status, body: data })))
             .then(res => {
