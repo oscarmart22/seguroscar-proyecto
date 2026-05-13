@@ -7,114 +7,193 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
+        * { box-sizing: border-box; }
+
         .forum-container {
-            max-width: 800px;
-            margin: 120px auto 40px;
-            padding: 0 1rem;
+            max-width: 820px;
+            margin: 120px auto 60px;
+            padding: 0 1.25rem;
         }
+
+        /* ── Glassmorphism card base ── */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* ── Post form ── */
         .post-form-card {
-            background: var(--color-bg-card);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
+            padding: 1.75rem;
             margin-bottom: 2rem;
             display: none;
         }
-        .post-form-card h3 { margin-bottom: 1rem; }
+        .post-form-card h3 {
+            margin-bottom: 1rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #f0f0f0;
+        }
         .post-input {
             width: 100%;
             min-height: 100px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             padding: 1rem;
-            color: var(--color-text);
-            font-family: inherit;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
             margin-bottom: 1rem;
             resize: vertical;
-            box-sizing: border-box;
+            transition: border-color 0.3s ease;
         }
         .post-input:focus {
             outline: none;
-            border-color: var(--color-primary);
+            border-color: #00d4ff;
         }
         .login-prompt {
             text-align: center;
-            padding: 2rem;
-            background: var(--color-bg-card);
-            border: 1px dashed var(--color-border);
-            border-radius: var(--radius-lg);
+            padding: 2.5rem 2rem;
             margin-bottom: 2rem;
+            border-style: dashed;
         }
+        .login-prompt p { color: #999; margin-bottom: 1rem; }
 
+        /* ── Post card ── */
         .post-card {
-            background: var(--color-bg-card);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
             padding: 1.5rem;
             margin-bottom: 1rem;
             display: flex;
             gap: 1rem;
-            transition: border-color 0.2s ease;
         }
-        .post-card:hover { border-color: var(--color-border-hover); }
+
+        /* ── Vote column ── */
         .post-votes {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
-            min-width: 40px;
+            gap: 0.15rem;
+            min-width: 44px;
             flex-shrink: 0;
+            padding-top: 0.25rem;
+        }
+        .vote-score {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #e0e0e0;
+            margin-bottom: 0.25rem;
+            transition: color 0.3s ease;
+        }
+        .vote-score.positive { color: #00ffa3; }
+        .vote-score.negative { color: #ff4d6a; }
+        .vote-btns {
+            display: flex;
+            gap: 0.25rem;
         }
         .vote-btn {
-            background: none;
-            border: none;
-            color: var(--color-text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #888;
             cursor: pointer;
-            padding: 6px;
-            border-radius: 4px;
-            font-size: 1rem;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
             line-height: 1;
+            transition: all 0.3s ease;
         }
-        .vote-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--color-text); }
-        .vote-count { font-weight: 600; font-size: 0.9rem; }
+        .vote-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .vote-btn.active-up {
+            background: rgba(0, 255, 163, 0.15);
+            border-color: rgba(0, 255, 163, 0.3);
+            color: #00ffa3;
+        }
+        .vote-btn.active-down {
+            background: rgba(255, 77, 106, 0.15);
+            border-color: rgba(255, 77, 106, 0.3);
+            color: #ff4d6a;
+        }
 
-        .post-content-area { flex-grow: 1; min-width: 0; }
+        /* ── Post content ── */
+        .post-content-area {
+            flex-grow: 1;
+            min-width: 0;
+        }
         .post-header {
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 0.5rem;
             font-size: 0.85rem;
-            color: var(--color-text-muted);
+            color: #777;
             flex-wrap: wrap;
-            gap: 0.25rem;
         }
-        .post-author { font-weight: 600; color: var(--color-text); }
-        .post-body { line-height: 1.6; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
+        .post-author {
+            font-weight: 700;
+            color: #f0f0f0;
+        }
+        .badge-admin {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #f0a500);
+            color: #1a1a1a;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .post-time {
+            margin-left: auto;
+        }
+        .post-body {
+            line-height: 1.7;
+            color: #d0d0d0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.95rem;
+        }
 
+        /* ── Actions ── */
         .post-actions { margin-top: 0.75rem; }
         .btn-reply {
             background: none;
             border: none;
-            color: var(--color-primary);
-            font-size: 0.85rem;
+            color: #00d4ff;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
-            padding: 0;
+            padding: 4px 0;
+            transition: opacity 0.3s ease;
         }
-        .btn-reply:hover { text-decoration: underline; }
+        .btn-reply:hover { opacity: 0.7; }
 
-        /* Reply thread indentation */
+        /* ── Reply threads ── */
         .reply-container {
-            margin-left: 2rem;
-            border-left: 2px solid rgba(255, 255, 255, 0.08);
-            padding-left: 1rem;
+            margin-left: 1.75rem;
+            padding-left: 1.25rem;
             margin-top: 0.75rem;
+            border-left: 2px solid rgba(0, 212, 255, 0.15);
+            position: relative;
         }
         .reply-container .post-card {
-            padding: 1rem;
+            background: rgba(255, 255, 255, 0.025);
+            border-color: rgba(255, 255, 255, 0.06);
+            padding: 1.15rem;
             margin-bottom: 0.75rem;
-            background: rgba(255, 255, 255, 0.02);
+        }
+        .reply-container .post-card:hover {
+            background: rgba(255, 255, 255, 0.045);
         }
 
         .reply-form {
@@ -122,13 +201,21 @@
             margin-top: 0.75rem;
         }
         .reply-form.active { display: block; }
-        .reply-form .post-input { min-height: 60px; }
+        .reply-form .post-input { min-height: 60px; font-size: 0.9rem; }
 
         .empty-msg, .error-msg {
             text-align: center;
-            padding: 2rem;
+            padding: 3rem 2rem;
+            color: #777;
         }
-        .error-msg { color: var(--color-danger); }
+        .error-msg { color: #ff4d6a; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .forum-container { margin-top: 100px; }
+            .reply-container { margin-left: 0.75rem; padding-left: 0.75rem; }
+            .post-header { font-size: 0.8rem; }
+        }
     </style>
 </head>
 <body>
@@ -158,27 +245,29 @@
     </nav>
 
     <div class="forum-container">
-        <div class="section__header" style="text-align: left; margin-bottom: 2rem;">
-            <h1 class="section__title">Foro de Discusión</h1>
-            <p class="section__subtitle">Comparte dudas y opiniones sobre seguridad biométrica.</p>
+        <div style="margin-bottom: 2.5rem;">
+            <h1 style="font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">Foro de Discusión</h1>
+            <p style="color: #888; font-size: 1rem;">Comparte dudas y opiniones sobre seguridad biométrica.</p>
         </div>
 
-        <div id="loginPrompt" class="login-prompt">
+        <div id="loginPrompt" class="glass-card login-prompt">
             <p>Debes iniciar sesión para publicar en el foro.</p>
-            <a href="/" class="btn btn--primary" style="margin-top: 1rem; display: inline-block;">Ir al inicio a loguearse</a>
+            <a href="/" class="btn btn--primary" style="display: inline-block;">Ir al inicio a loguearse</a>
         </div>
 
-        <div id="postFormCard" class="post-form-card">
+        <div id="postFormCard" class="glass-card post-form-card">
             <h3>Crear una publicación</h3>
             <form id="newPostForm">
                 <textarea id="postContent" class="post-input" placeholder="¿Qué tienes en mente?" required></textarea>
-                <button type="submit" class="btn btn--primary" id="submitPostBtn">Publicar</button>
-                <span id="postMsg" style="margin-left: 1rem; font-size: 0.9rem;"></span>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button type="submit" class="btn btn--primary" id="submitPostBtn">Publicar</button>
+                    <span id="postMsg" style="font-size: 0.9rem;"></span>
+                </div>
             </form>
         </div>
 
         <div id="postsList">
-            <p class="empty-msg" style="color: var(--color-text-muted);">Cargando publicaciones...</p>
+            <p class="empty-msg">Cargando publicaciones...</p>
         </div>
     </div>
 
@@ -186,42 +275,55 @@
     (function() {
         'use strict';
 
-        let loggedIn = false;
-        const postsList = document.getElementById('postsList');
+        var loggedIn = false;
+        var postsList = document.getElementById('postsList');
 
-        // ─── Escape HTML to prevent XSS ───
         function esc(str) {
-            const d = document.createElement('div');
+            var d = document.createElement('div');
             d.textContent = str;
             return d.innerHTML;
         }
 
-        // ─── Build HTML for a single post + its replies recursively ───
+        function scoreClass(score) {
+            if (score > 0) return ' positive';
+            if (score < 0) return ' negative';
+            return '';
+        }
+
         function buildPostHtml(post) {
-            const score = (post.upvotes || 0) - (post.downvotes || 0);
-            let repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
+            var score = post.score || 0;
+            var userVote = post.user_vote || 0;
+            var upClass = userVote === 1 ? ' active-up' : '';
+            var downClass = userVote === -1 ? ' active-down' : '';
+
+            var adminBadge = post.is_admin ? ' <span class="badge-admin">Admin</span>' : '';
+
+            var repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
             if (post.replies && post.replies.length > 0) {
                 post.replies.forEach(function(r) { repliesHtml += buildPostHtml(r); });
             }
             repliesHtml += '</div>';
 
-            return '<div class="post-card" id="post-' + post.id + '">'
+            return '<div class="glass-card post-card" id="post-' + post.id + '">'
                 + '<div class="post-votes">'
-                +   '<button class="vote-btn" data-vote-id="' + post.id + '" data-vote-type="up" title="Upvote">&#9650;</button>'
-                +   '<span class="vote-count" id="vote-count-' + post.id + '">' + score + '</span>'
-                +   '<button class="vote-btn" data-vote-id="' + post.id + '" data-vote-type="down" title="Downvote">&#9660;</button>'
+                +   '<span class="vote-score' + scoreClass(score) + '" id="vote-count-' + post.id + '">' + score + '</span>'
+                +   '<div class="vote-btns">'
+                +     '<button class="vote-btn' + upClass + '" data-vote-id="' + post.id + '" data-vote-type="up" title="Upvote">&#9650;</button>'
+                +     '<button class="vote-btn' + downClass + '" data-vote-id="' + post.id + '" data-vote-type="down" title="Downvote">&#9660;</button>'
+                +   '</div>'
                 + '</div>'
                 + '<div class="post-content-area">'
                 +   '<div class="post-header">'
                 +     '<span class="post-author">' + esc(post.username) + '</span>'
-                +     '<span>' + esc(post.timestamp || '') + '</span>'
+                +     adminBadge
+                +     '<span class="post-time">' + esc(post.timestamp || '') + '</span>'
                 +   '</div>'
                 +   '<div class="post-body">' + esc(post.content) + '</div>'
                 +   '<div class="post-actions">'
                 +     '<button class="btn-reply" data-reply-id="' + post.id + '">Responder</button>'
                 +   '</div>'
                 +   '<form class="reply-form" id="reply-form-' + post.id + '">'
-                +     '<textarea class="post-input" style="min-height:60px;" id="reply-content-' + post.id + '" placeholder="Escribe tu respuesta..." required></textarea>'
+                +     '<textarea class="post-input" id="reply-content-' + post.id + '" placeholder="Escribe tu respuesta..." required></textarea>'
                 +     '<button type="submit" class="btn btn--primary" style="font-size:0.85rem; padding:0.5rem 1rem;" data-submit-reply="' + post.id + '">Responder</button>'
                 +   '</form>'
                 +   repliesHtml
@@ -229,7 +331,6 @@
               + '</div>';
         }
 
-        // ─── Load all posts from backend ───
         function loadPosts() {
             fetch('/api/posts')
                 .then(function(res) {
@@ -239,7 +340,7 @@
                 .then(function(posts) {
                     postsList.innerHTML = '';
                     if (!posts || !Array.isArray(posts) || posts.length === 0) {
-                        postsList.innerHTML = '<p class="empty-msg" style="color:var(--color-text-muted);">Aún no hay publicaciones. ¡Sé el primero!</p>';
+                        postsList.innerHTML = '<p class="empty-msg">Aún no hay publicaciones. ¡Sé el primero!</p>';
                         return;
                     }
                     var html = '';
@@ -247,11 +348,11 @@
                     postsList.innerHTML = html;
                 })
                 .catch(function() {
-                    postsList.innerHTML = '<p class="error-msg">Error al cargar las publicaciones. Intenta recargar la página.</p>';
+                    postsList.innerHTML = '<p class="error-msg">Error al cargar las publicaciones.</p>';
                 });
         }
 
-        // ─── Check auth and then load posts ───
+        // Auth check
         fetch('/api/me')
             .then(function(res) { return res.json(); })
             .then(function(data) {
@@ -262,21 +363,18 @@
                 }
                 loadPosts();
             })
-            .catch(function() {
-                loadPosts();
-            });
+            .catch(function() { loadPosts(); });
 
-        // ─── New Post form ───
+        // New Post
         document.getElementById('newPostForm').addEventListener('submit', function(e) {
             e.preventDefault();
             var content = document.getElementById('postContent').value.trim();
             var btn = document.getElementById('submitPostBtn');
             var msg = document.getElementById('postMsg');
-
             if (!content) return;
 
             btn.disabled = true;
-            msg.style.color = 'var(--color-text-muted)';
+            msg.style.color = '#999';
             msg.textContent = 'Publicando...';
 
             fetch('/api/posts', {
@@ -284,16 +382,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content, parent_id: null })
             })
-            .then(function(res) {
-                if (!res.ok && res.status === 401) {
-                    return res.json().then(function(d) { throw new Error(d.error || 'No autenticado'); });
-                }
-                return res.json();
-            })
+            .then(function(res) { return res.json(); })
             .then(function(data) {
                 btn.disabled = false;
                 if (data.error) {
-                    msg.style.color = 'var(--color-danger)';
+                    msg.style.color = '#ff4d6a';
                     msg.textContent = data.error;
                     return;
                 }
@@ -302,44 +395,32 @@
                 document.getElementById('postContent').value = '';
                 setTimeout(function() { msg.textContent = ''; }, 3000);
 
-                // Prepend new post instantly
                 if (data.post) {
-                    // Remove "no posts" placeholder if present
                     var placeholder = postsList.querySelector('.empty-msg');
                     if (placeholder) placeholder.remove();
-
                     var tmp = document.createElement('div');
                     tmp.innerHTML = buildPostHtml(data.post);
                     postsList.prepend(tmp.firstElementChild);
                 }
             })
-            .catch(function(err) {
+            .catch(function() {
                 btn.disabled = false;
-                msg.style.color = 'var(--color-danger)';
-                msg.textContent = err.message || 'Error de conexión';
+                msg.style.color = '#ff4d6a';
+                msg.textContent = 'Error de conexión';
             });
         });
 
-        // ─── Event Delegation for votes, replies, and reply submit ───
+        // Event Delegation
         postsList.addEventListener('click', function(e) {
             var target = e.target;
 
-            // VOTE buttons
+            // VOTE
             if (target.classList.contains('vote-btn')) {
                 e.preventDefault();
                 var postId = target.getAttribute('data-vote-id');
                 var voteType = target.getAttribute('data-vote-type');
                 if (!postId || !voteType) return;
-
-                if (!loggedIn) {
-                    alert('Debes iniciar sesión para votar.');
-                    return;
-                }
-
-                // Optimistic update
-                var countSpan = document.getElementById('vote-count-' + postId);
-                var oldCount = parseInt(countSpan.textContent) || 0;
-                countSpan.textContent = voteType === 'up' ? oldCount + 1 : oldCount - 1;
+                if (!loggedIn) { alert('Debes iniciar sesión para votar.'); return; }
 
                 fetch('/api/vote', {
                     method: 'POST',
@@ -348,46 +429,49 @@
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
-                    if (data.error) {
-                        countSpan.textContent = oldCount; // revert
+                    if (data.error) { alert(data.error); return; }
+
+                    // Update score display
+                    var countEl = document.getElementById('vote-count-' + postId);
+                    countEl.textContent = data.score;
+                    countEl.className = 'vote-score' + scoreClass(data.score);
+
+                    // Update button active states
+                    var card = document.getElementById('post-' + postId);
+                    var btns = card.querySelectorAll('.vote-btn[data-vote-id="' + postId + '"]');
+                    btns.forEach(function(b) {
+                        b.classList.remove('active-up', 'active-down');
+                    });
+                    if (data.user_vote === 1) {
+                        card.querySelector('[data-vote-type="up"][data-vote-id="' + postId + '"]').classList.add('active-up');
+                    } else if (data.user_vote === -1) {
+                        card.querySelector('[data-vote-type="down"][data-vote-id="' + postId + '"]').classList.add('active-down');
                     }
                 })
-                .catch(function() {
-                    countSpan.textContent = oldCount; // revert
-                });
+                .catch(function() { /* silent */ });
                 return;
             }
 
-            // REPLY toggle button
+            // REPLY toggle
             if (target.classList.contains('btn-reply')) {
                 e.preventDefault();
-                var replyId = target.getAttribute('data-reply-id');
-                if (!loggedIn) {
-                    alert('Debes iniciar sesión para responder.');
-                    return;
-                }
-                var form = document.getElementById('reply-form-' + replyId);
+                if (!loggedIn) { alert('Debes iniciar sesión para responder.'); return; }
+                var rid = target.getAttribute('data-reply-id');
+                var form = document.getElementById('reply-form-' + rid);
                 if (form) form.classList.toggle('active');
                 return;
             }
-
-            // REPLY submit button
-            if (target.getAttribute('data-submit-reply')) {
-                // handled by form submit event below
-            }
         });
 
-        // Reply form submissions via event delegation
+        // Reply form submissions
         postsList.addEventListener('submit', function(e) {
             if (!e.target.classList.contains('reply-form')) return;
             e.preventDefault();
-
             var form = e.target;
             var parentId = form.id.replace('reply-form-', '');
             var contentInput = document.getElementById('reply-content-' + parentId);
             var btn = form.querySelector('button[type="submit"]');
             var content = contentInput.value.trim();
-
             if (!content) return;
 
             btn.disabled = true;
@@ -402,27 +486,20 @@
             .then(function(data) {
                 btn.disabled = false;
                 btn.textContent = 'Responder';
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
+                if (data.error) { alert(data.error); return; }
                 contentInput.value = '';
                 form.classList.remove('active');
-
-                // Append reply instantly
                 if (data.post) {
-                    var repliesContainer = document.getElementById('replies-' + parentId);
-                    if (repliesContainer) {
-                        var tmp = document.createElement('div');
-                        tmp.innerHTML = buildPostHtml(data.post);
-                        repliesContainer.appendChild(tmp.firstElementChild);
-                    }
+                    var container = document.getElementById('replies-' + parentId);
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = buildPostHtml(data.post);
+                    container.appendChild(tmp.firstElementChild);
                 }
             })
             .catch(function() {
                 btn.disabled = false;
                 btn.textContent = 'Responder';
-                alert('Error de conexión. Intenta de nuevo.');
+                alert('Error de conexión.');
             });
         });
 
