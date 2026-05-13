@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <defs>
+        <linearGradient id="logoBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00d4ff" />
+            <stop offset="100%" stop-color="#0055aa" />
+        </linearGradient>
+    </defs>
+    <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad)" fill="#000000" />
+    <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad)" />
+    <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad)" stroke="none" />
+</svg>
