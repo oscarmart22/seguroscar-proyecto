@@ -19,6 +19,18 @@
 </head>
 
 <body>
+    <!-- ============ MOBILE FULLSCREEN MENU ============ -->
+    <div id="mobile-menu">
+        <button id="closeMobileMenu" aria-label="Cerrar menú">&times;</button>
+        <a href="/#hero" class="mobile-menu-link">Inicio</a>
+        <a href="/#producto" class="mobile-menu-link">Producto</a>
+        <a href="/#mercado" class="mobile-menu-link">Mercado</a>
+        <a href="/foro" class="mobile-menu-link">Foro</a>
+        <a href="/#contacto" class="mobile-menu-link">Contacto</a>
+        <div id="mobileOverlayAuthContainer" style="display:flex; flex-direction:column; align-items:center;">
+            <a href="/login" class="mobile-menu-link">Iniciar Sesión</a>
+        </div>
+    </div>
     <!-- ============ HERO SECTION ============ -->
     <section class="hero-section" id="hero">
         <!-- Background Video -->
@@ -57,7 +69,6 @@
                         <li><a href="/#mercado" class="navbar__link">Mercado</a></li>
                         <li><a href="/foro" class="navbar__link">Foro</a></li>
                         <li><a href="/#contacto" class="navbar__link">Contacto</a></li>
-                        <li class="mobile-only" id="mobileAuthContainer"><a href="/login" class="navbar__link" id="mobileLoginBtnFallback">Iniciar Sesión</a></li>
                     </ul>
                 </div>
 

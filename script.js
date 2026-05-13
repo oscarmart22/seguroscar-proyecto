@@ -14,21 +14,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ─── Mobile menu toggle ───
     const navToggle = document.getElementById('navToggle');
-    const navLinks = document.getElementById('navLinks');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const closeMobileMenuBtn = document.getElementById('closeMobileMenu');
 
-    navToggle.addEventListener('click', () => {
-        navToggle.classList.toggle('active');
-        navLinks.classList.toggle('open');
-        document.body.style.overflow = navLinks.classList.contains('open') ? 'hidden' : '';
-    });
+    function openMenu() {
+        if(mobileMenu) mobileMenu.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 
-    navLinks.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            navToggle.classList.remove('active');
-            navLinks.classList.remove('open');
-            document.body.style.overflow = '';
+    function closeMenu() {
+        if(mobileMenu) mobileMenu.classList.remove('active');
+        if(navToggle) navToggle.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (navToggle) {
+        navToggle.addEventListener('click', () => {
+            navToggle.classList.add('active');
+            openMenu();
         });
-    });
+    }
+
+    if (closeMobileMenuBtn) {
+        closeMobileMenuBtn.addEventListener('click', closeMenu);
+    }
+
+    if (mobileMenu) {
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', closeMenu);
+        });
+    }
 
     // ─── Smooth scroll for nav links ───
     document.querySelectorAll('a[href^="#"], a[href^="/#"]').forEach(anchor => {
@@ -297,11 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     });
                     
-                    const mobileAuth = document.getElementById('mobileAuthContainer');
+                    const mobileAuth = document.getElementById('mobileOverlayAuthContainer');
                     if (mobileAuth) {
                         mobileAuth.innerHTML = `
-                            <span class="navbar__link" style="color: var(--color-text-heading); font-weight: 600;">Hola, ${data.username}</span>
-                            <a href="#" id="mobileLogoutBtn" class="navbar__link" style="color: var(--color-danger);">Cerrar Sesión</a>
+                            <span class="mobile-menu-link" style="color: var(--color-text-heading); font-weight: 600;">Hola, ${data.username}</span>
+                            <a href="#" id="mobileLogoutBtn" class="mobile-menu-link" style="color: var(--color-danger);">Cerrar Sesión</a>
                         `;
                         document.getElementById('mobileLogoutBtn').addEventListener('click', (e) => {
                             e.preventDefault();
@@ -318,15 +333,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     
-                    const mobileAuth = document.getElementById('mobileAuthContainer');
+                    const mobileAuth = document.getElementById('mobileOverlayAuthContainer');
                     if (mobileAuth) {
-                        mobileAuth.innerHTML = `<a href="/login" class="navbar__link" id="mobileLoginBtnFallback">Iniciar Sesión</a>`;
-                        document.getElementById('mobileLoginBtnFallback').addEventListener('click', (e) => {
-                            e.preventDefault();
-                            openModal(true);
-                            const navToggle = document.getElementById('navToggle');
-                            if(navToggle && navToggle.classList.contains('active')) navToggle.click();
-                        });
+                        mobileAuth.innerHTML = `<a href="/login" class="mobile-menu-link" id="mobileLoginBtnFallback">Iniciar Sesión</a>`;
+                        const fb = document.getElementById('mobileLoginBtnFallback');
+                        if (fb) {
+                            fb.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                openModal(true);
+                                if (typeof closeMenu === 'function') closeMenu();
+                            });
+                        }
                     }
                 }
             })

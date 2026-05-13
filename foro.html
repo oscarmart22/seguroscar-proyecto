@@ -221,6 +221,18 @@
     </style>
 </head>
 <body>
+    <!-- ============ MOBILE FULLSCREEN MENU ============ -->
+    <div id="mobile-menu">
+        <button id="closeMobileMenu" aria-label="Cerrar menú">&times;</button>
+        <a href="/#hero" class="mobile-menu-link">Inicio</a>
+        <a href="/#producto" class="mobile-menu-link">Producto</a>
+        <a href="/#mercado" class="mobile-menu-link">Mercado</a>
+        <a href="/foro" class="mobile-menu-link">Foro</a>
+        <a href="/#contacto" class="mobile-menu-link">Contacto</a>
+        <div id="mobileOverlayAuthContainer" style="display:flex; flex-direction:column; align-items:center;">
+            <a href="/login?next=/foro" class="mobile-menu-link">Iniciar Sesión</a>
+        </div>
+    </div>
     <nav class="navbar scrolled" id="navbar" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(24px);">
         <div class="navbar__inner">
             <div class="navbar__left">
@@ -245,7 +257,6 @@
                     <li><a href="/#mercado" class="navbar__link">Mercado</a></li>
                     <li><a href="/foro" class="navbar__link" style="color: var(--color-primary); font-weight: bold;">Foro</a></li>
                     <li><a href="/#contacto" class="navbar__link">Contacto</a></li>
-                    <li class="mobile-only" id="mobileAuthContainer"><a href="/login?next=/foro" class="navbar__link" id="mobileLoginBtnFallback">Iniciar Sesión</a></li>
                 </ul>
             </div>
 
@@ -392,10 +403,10 @@
                         });
                     }
                     
-                    var mobileAuth = document.getElementById('mobileAuthContainer');
+                    var mobileAuth = document.getElementById('mobileOverlayAuthContainer');
                     if (mobileAuth) {
-                        mobileAuth.innerHTML = '<span class="navbar__link" style="color: #fff; font-weight: 600;">Hola, ' + data.username + '</span>' +
-                            '<a href="#" id="mobileLogoutBtn" class="navbar__link" style="color: var(--color-danger);">Cerrar Sesión</a>';
+                        mobileAuth.innerHTML = '<span class="mobile-menu-link" style="color: #fff; font-weight: 600;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="mobileLogoutBtn" class="mobile-menu-link" style="color: var(--color-danger);">Cerrar Sesión</a>';
                         document.getElementById('mobileLogoutBtn').addEventListener('click', function(e) {
                             e.preventDefault();
                             fetch('/logout', { method: 'POST' }).then(function() { window.location.reload(); });
@@ -409,9 +420,9 @@
                             window.location.href = '/login?next=/foro';
                         });
                     }
-                    var mobileAuth = document.getElementById('mobileAuthContainer');
+                    var mobileAuth = document.getElementById('mobileOverlayAuthContainer');
                     if (mobileAuth) {
-                        mobileAuth.innerHTML = '<a href="/login?next=/foro" class="navbar__link">Iniciar Sesión</a>';
+                        mobileAuth.innerHTML = '<a href="/login?next=/foro" class="mobile-menu-link">Iniciar Sesión</a>';
                     }
                 }
                 loadPosts();
@@ -420,19 +431,34 @@
 
         // Mobile menu toggle
         var navToggle = document.getElementById('navToggle');
-        var navLinks = document.getElementById('navLinks');
-        if (navToggle && navLinks) {
+        var mobileMenu = document.getElementById('mobile-menu');
+        var closeMobileMenuBtn = document.getElementById('closeMobileMenu');
+
+        function openMenu() {
+            if(mobileMenu) mobileMenu.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+            if(mobileMenu) mobileMenu.classList.remove('active');
+            if(navToggle) navToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (navToggle) {
             navToggle.addEventListener('click', function() {
-                navToggle.classList.toggle('active');
-                navLinks.classList.toggle('open');
-                document.body.style.overflow = navLinks.classList.contains('open') ? 'hidden' : '';
+                navToggle.classList.add('active');
+                openMenu();
             });
-            navLinks.querySelectorAll('a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    navToggle.classList.remove('active');
-                    navLinks.classList.remove('open');
-                    document.body.style.overflow = '';
-                });
+        }
+
+        if (closeMobileMenuBtn) {
+            closeMobileMenuBtn.addEventListener('click', closeMenu);
+        }
+
+        if (mobileMenu) {
+            mobileMenu.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', closeMenu);
             });
         }
 
