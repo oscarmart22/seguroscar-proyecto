@@ -36,24 +36,12 @@ class Post(db.Model):
         order_by='Post.timestamp.asc()'
     )
 
-# ─── DB Init + Migration ───
+# ─── DB Init (limpieza y recreación) ───
 
 with app.app_context():
+    db.drop_all()
     db.create_all()
-    # Migrate: ensure parent_id column exists in posts table
-    try:
-        conn = db.engine.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(post)")
-        columns = [row[1] for row in cursor.fetchall()]
-        if 'parent_id' not in columns:
-            cursor.execute("ALTER TABLE post ADD COLUMN parent_id INTEGER REFERENCES post(id)")
-            conn.commit()
-            print("[MIGRATION] Added parent_id column to post table.")
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"[MIGRATION WARNING] {e}")
+    print("[INIT] Base de datos recreada limpiamente.")
 
 # ─── Global error handler: ALWAYS return JSON ───
 
@@ -144,15 +132,16 @@ def foro():
 # ─── Forum API ───
 
 def serialize_post(post):
+    autor = post.user.username if post.user else 'Usuario Anónimo'
     return {
         "id": post.id,
-        "username": post.user.username,
+        "username": autor,
         "content": post.content,
         "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S") if post.timestamp else "",
         "upvotes": post.upvotes,
         "downvotes": post.downvotes,
         "parent_id": post.parent_id,
-        "replies": [serialize_post(reply) for reply in post.replies]
+        "replies": [serialize_post(reply) for reply in (post.replies or [])]
     }
 
 @app.route('/api/posts', methods=['GET', 'POST'])
@@ -160,6 +149,13 @@ def api_posts():
     if request.method == 'POST':
         if 'user_id' not in session:
             return jsonify({"error": "No autenticado"}), 401
+
+        # Verificar que el usuario de la sesión realmente existe en la BD
+        current_user = db.session.get(User, session['user_id'])
+        if not current_user:
+            session.clear()
+            return jsonify({"error": "Sesión inválida. Inicia sesión de nuevo."}), 401
+
         try:
             data = request.get_json(force=True)
         except Exception:
@@ -171,7 +167,7 @@ def api_posts():
         if not content:
             return jsonify({"error": "El contenido no puede estar vacío"}), 400
 
-        new_post = Post(user_id=session['user_id'], content=content, parent_id=parent_id)
+        new_post = Post(user_id=current_user.id, content=content, parent_id=parent_id)
         db.session.add(new_post)
         db.session.commit()
         # Re-read so that timestamp is populated
