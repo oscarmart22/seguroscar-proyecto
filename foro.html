@@ -128,6 +128,14 @@
             word-break: break-word;
             font-size: 0.95rem;
         }
+        .post-body a {
+            color: #00d4ff;
+            text-decoration: underline;
+            transition: opacity 0.3s ease;
+        }
+        .post-body a:hover {
+            opacity: 0.8;
+        }
 
         /* ── Actions ── */
         .post-actions { margin-top: 0.75rem; }
@@ -280,6 +288,13 @@
             return d.innerHTML;
         }
 
+        function linkify(text) {
+            var urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+            });
+        }
+
         function buildPostHtml(post) {
             var adminBadge = post.is_admin ? ' <span class="badge-admin">Admin</span>' : '';
 
@@ -312,7 +327,7 @@
                 +     '</div>'
                 +     '<div class="post-manage">' + manageActions + '</div>'
                 +   '</div>'
-                +   '<div class="post-body" id="post-body-' + post.id + '">' + esc(post.content) + '</div>'
+                +   '<div class="post-body" id="post-body-' + post.id + '">' + linkify(esc(post.content)) + '</div>'
                 +   '<div class="post-actions">'
                 +     '<button class="btn-reply" data-reply-id="' + post.id + '">Responder</button>'
                 +   '</div>'
@@ -511,7 +526,7 @@
                     .then(function(data) {
                         if (data.error) { alert(data.error); return; }
                         if (data.post) {
-                            bodyDiv.textContent = data.post.content;
+                            bodyDiv.innerHTML = linkify(esc(data.post.content));
                         }
                     })
                     .catch(function() { alert('Error al editar'); });
