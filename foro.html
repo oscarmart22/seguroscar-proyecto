@@ -85,6 +85,31 @@
         }
         .post-author { font-weight: 600; color: var(--color-text); }
         .post-body { line-height: 1.6; color: var(--color-text); white-space: pre-wrap;}
+        
+        .post-actions {
+            margin-top: 1rem;
+        }
+        .btn-reply {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-reply:hover { text-decoration: underline; }
+        
+        .reply-container {
+            margin-left: 2.5rem;
+            border-left: 2px solid rgba(255,255,255,0.1);
+            padding-left: 1rem;
+            margin-top: 1rem;
+        }
+        .reply-form {
+            display: none;
+            margin-top: 1rem;
+        }
+        .reply-form.active { display: block; }
     </style>
 </head>
 <body>
@@ -151,43 +176,73 @@
                         document.getElementById('postFormCard').style.display = 'block';
                     }
                     loadPosts();
+                })
+                .catch(() => {
+                    document.getElementById('postsList').innerHTML = '<p style="text-align:center; color:var(--color-danger);">Error de conexión con el servidor.</p>';
                 });
 
             const postsList = document.getElementById('postsList');
+
+            function createPostHtml(post, isReply = false) {
+                const totalVotes = post.upvotes - post.downvotes;
+                let repliesHtml = '';
+                
+                if (post.replies && post.replies.length > 0) {
+                    repliesHtml = '<div class="reply-container" id="replies-' + post.id + '">';
+                    post.replies.forEach(reply => {
+                        repliesHtml += createPostHtml(reply, true);
+                    });
+                    repliesHtml += '</div>';
+                } else {
+                    repliesHtml = '<div class="reply-container" id="replies-' + post.id + '"></div>';
+                }
+
+                return `
+                    <div class="post-card" id="post-${post.id}">
+                        <div class="post-votes">
+                            <button class="vote-btn" onclick="vote(${post.id}, 'up')" title="Upvote">▲</button>
+                            <span class="vote-count" id="vote-count-${post.id}">${totalVotes}</span>
+                            <button class="vote-btn" onclick="vote(${post.id}, 'down')" title="Downvote">▼</button>
+                        </div>
+                        <div class="post-content-area">
+                            <div class="post-header">
+                                <span class="post-author">${post.username}</span>
+                                <span>${post.timestamp}</span>
+                            </div>
+                            <div class="post-body">${escapeHtml(post.content)}</div>
+                            <div class="post-actions">
+                                <button class="btn-reply" onclick="toggleReplyForm(${post.id})">Responder</button>
+                            </div>
+                            <form class="reply-form" id="reply-form-${post.id}" onsubmit="submitReply(event, ${post.id})">
+                                <textarea class="post-input" style="min-height: 60px;" id="reply-content-${post.id}" placeholder="Escribe tu respuesta..." required></textarea>
+                                <button type="submit" class="btn btn--primary btn--sm" id="reply-btn-${post.id}">Responder</button>
+                            </form>
+                            ${repliesHtml}
+                        </div>
+                    </div>
+                `;
+            }
 
             function loadPosts() {
                 fetch('/api/posts')
                     .then(res => res.json())
                     .then(posts => {
                         postsList.innerHTML = '';
-                        if (posts.length === 0) {
+                        if (!posts || posts.length === 0) {
                             postsList.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Aún no hay publicaciones. ¡Sé el primero!</p>';
                             return;
                         }
                         
                         posts.forEach(post => {
-                            const totalVotes = post.upvotes - post.downvotes;
-                            const postHtml = `
-                                <div class="post-card">
-                                    <div class="post-votes">
-                                        <button class="vote-btn" onclick="vote(${post.id}, 'up')" title="Upvote">▲</button>
-                                        <span class="vote-count">${totalVotes}</span>
-                                        <button class="vote-btn" onclick="vote(${post.id}, 'down')" title="Downvote">▼</button>
-                                    </div>
-                                    <div class="post-content-area">
-                                        <div class="post-header">
-                                            <span class="post-author">${post.username}</span>
-                                            <span>${post.timestamp}</span>
-                                        </div>
-                                        <div class="post-body">${escapeHtml(post.content)}</div>
-                                    </div>
-                                </div>
-                            `;
-                            postsList.innerHTML += postHtml;
+                            postsList.innerHTML += createPostHtml(post);
                         });
+                    })
+                    .catch(() => {
+                        postsList.innerHTML = '<p style="text-align: center; color: var(--color-danger);">Error al cargar las publicaciones.</p>';
                     });
             }
 
+            // New Post form
             document.getElementById('newPostForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const content = document.getElementById('postContent').value;
@@ -200,7 +255,7 @@
                 fetch('/api/posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content })
+                    body: JSON.stringify({ content: content, parent_id: null })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -213,16 +268,82 @@
                         msg.textContent = 'Publicado exitosamente';
                         document.getElementById('postContent').value = '';
                         setTimeout(() => msg.textContent = '', 3000);
-                        loadPosts();
+                        
+                        // Añadir instantáneamente al inicio de la lista
+                        if (data.post) {
+                            // Remover mensaje de "No hay publicaciones" si existe
+                            if(postsList.querySelector('p')) {
+                                postsList.innerHTML = '';
+                            }
+                            postsList.insertAdjacentHTML('afterbegin', createPostHtml(data.post));
+                        }
                     }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    msg.style.color = 'var(--color-danger)';
+                    msg.textContent = 'Error de conexión';
                 });
             });
+
+            window.toggleReplyForm = function(postId) {
+                if (!loggedIn) {
+                    alert("Debes iniciar sesión para responder.");
+                    return;
+                }
+                const form = document.getElementById('reply-form-' + postId);
+                form.classList.toggle('active');
+            };
+
+            window.submitReply = function(e, parentId) {
+                e.preventDefault();
+                const contentInput = document.getElementById('reply-content-' + parentId);
+                const btn = document.getElementById('reply-btn-' + parentId);
+                const content = contentInput.value;
+                
+                btn.disabled = true;
+                btn.textContent = 'Enviando...';
+
+                fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content, parent_id: parentId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.textContent = 'Responder';
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        contentInput.value = '';
+                        document.getElementById('reply-form-' + parentId).classList.remove('active');
+                        // Añadir respuesta instantáneamente al contenedor de respuestas
+                        if (data.post) {
+                            const repliesContainer = document.getElementById('replies-' + parentId);
+                            repliesContainer.insertAdjacentHTML('beforeend', createPostHtml(data.post, true));
+                        }
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Responder';
+                    alert('Error de conexión');
+                });
+            };
 
             window.vote = function(postId, type) {
                 if (!loggedIn) {
                     alert("Debes iniciar sesión para votar");
                     return;
                 }
+
+                // Optimistic UI update
+                const countSpan = document.getElementById('vote-count-' + postId);
+                let currentCount = parseInt(countSpan.textContent);
+                if (type === 'up') countSpan.textContent = currentCount + 1;
+                else countSpan.textContent = currentCount - 1;
+
                 fetch('/api/vote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -230,8 +351,15 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.error) alert(data.error);
-                    else loadPosts();
+                    if (data.error) {
+                        alert(data.error);
+                        // Revert optimistic update
+                        countSpan.textContent = currentCount;
+                    }
+                })
+                .catch(() => {
+                    // Revert optimistic update
+                    countSpan.textContent = currentCount;
                 });
             };
 

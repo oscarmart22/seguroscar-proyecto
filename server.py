@@ -19,12 +19,14 @@ class User(db.Model):
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     upvotes = db.Column(db.Integer, default=0)
     downvotes = db.Column(db.Integer, default=0)
 
     user = db.relationship('User', backref=db.backref('posts', lazy=True))
+    replies = db.relationship('Post', backref=db.backref('parent', remote_side=[id]), lazy=True, order_by='Post.timestamp.asc()')
 
 with app.app_context():
     db.create_all()
@@ -99,24 +101,42 @@ def api_posts():
             return jsonify({"error": "No autenticado"}), 401
         data = request.get_json()
         content = data.get('content')
+        parent_id = data.get('parent_id')
         if not content:
             return jsonify({"error": "El contenido no puede estar vacío"}), 400
-        new_post = Post(user_id=session['user_id'], content=content)
+        new_post = Post(user_id=session['user_id'], content=content, parent_id=parent_id)
         db.session.add(new_post)
         db.session.commit()
-        return jsonify({"message": "Post creado"}), 201
+        return jsonify({
+            "message": "Post creado",
+            "post": {
+                "id": new_post.id,
+                "username": new_post.user.username,
+                "content": new_post.content,
+                "timestamp": new_post.timestamp.strftime("%Y-%m-%d %H:%M:%S") if new_post.timestamp else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "upvotes": new_post.upvotes,
+                "downvotes": new_post.downvotes,
+                "parent_id": new_post.parent_id,
+                "replies": []
+            }
+        }), 201
     
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    posts_data = []
-    for post in posts:
-        posts_data.append({
+    # Solo obtener posts principales (sin padre)
+    posts = Post.query.filter_by(parent_id=None).order_by(Post.timestamp.desc()).all()
+    
+    def serialize_post(post):
+        return {
             "id": post.id,
             "username": post.user.username,
             "content": post.content,
-            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S") if post.timestamp else "",
             "upvotes": post.upvotes,
-            "downvotes": post.downvotes
-        })
+            "downvotes": post.downvotes,
+            "parent_id": post.parent_id,
+            "replies": [serialize_post(reply) for reply in post.replies]
+        }
+
+    posts_data = [serialize_post(post) for post in posts]
     return jsonify(posts_data), 200
 
 @app.route('/api/vote', methods=['POST'])
