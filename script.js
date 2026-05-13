@@ -3,6 +3,19 @@
    ============================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // Helper to get CSRF token from cookie
+    function getCSRFToken() {
+        const name = 'csrf_token=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1);
+            if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+        }
+        return '';
+    }
 
     // ─── Navbar scroll effect ───
     const navbar = document.getElementById('navbar');
@@ -306,7 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     document.getElementById('logoutBtn').addEventListener('click', (e) => {
                         e.preventDefault();
-                        fetch('/logout', { method: 'POST' }).then(() => {
+                        fetch('/logout', { 
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': getCSRFToken() }
+                        }).then(() => {
                             window.location.reload();
                         });
                     });
@@ -416,7 +432,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
                 body: JSON.stringify({ username, password })
             })
             .then(res => res.json().then(data => ({ status: res.status, body: data })))

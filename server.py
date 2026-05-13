@@ -1,9 +1,12 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, send_from_directory, abort, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -20,7 +23,18 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-ADMIN_USERNAME = 'oscarmart22'
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
+@app.after_request
+def set_csrf_cookie(response):
+    response.set_cookie('csrf_token', generate_csrf(), samesite='Lax')
+    return response
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -32,6 +46,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -81,6 +96,7 @@ def index():
     return send_from_directory('.', 'index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def register():
     if request.method == 'GET':
         return send_from_directory('.', 'index.html')
@@ -98,18 +114,24 @@ def register():
     if not username or not password:
         return jsonify({"error": "Usuario y contraseña son requeridos"}), 400
 
+    if len(password) < 8:
+        return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
+
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "El usuario ya existe"}), 400
 
     hashed_password = generate_password_hash(password)
-    new_user = User(username=username, password_hash=hashed_password)
+    # Autocreate admin for specific user just in case, but using the column now
+    is_admin = (username == 'oscarmart22') 
+    new_user = User(username=username, password_hash=hashed_password, is_admin=is_admin)
     db.session.add(new_user)
     db.session.commit()
 
     login_user(new_user, remember=True)
-    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username}), 201
+    return jsonify({"message": "Usuario registrado exitosamente", "username": new_user.username, "is_admin": new_user.is_admin}), 201
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if request.method == 'GET':
         return send_from_directory('.', 'index.html')
@@ -128,7 +150,7 @@ def login():
 
     if user and check_password_hash(user.password_hash, password):
         login_user(user, remember=True)
-        return jsonify({"message": "Inicio de sesión exitoso", "username": user.username}), 200
+        return jsonify({"message": "Inicio de sesión exitoso", "username": user.username, "is_admin": user.is_admin}), 200
 
     return jsonify({"error": "Credenciales inválidas"}), 401
 
@@ -141,7 +163,7 @@ def logout():
 @app.route('/api/me', methods=['GET'])
 def get_me():
     if current_user.is_authenticated:
-        return jsonify({"logged_in": True, "username": current_user.username})
+        return jsonify({"logged_in": True, "username": current_user.username, "is_admin": current_user.is_admin})
     return jsonify({"logged_in": False})
 
 @app.route('/foro')
@@ -152,7 +174,7 @@ def foro():
 
 def serialize_post(post, current_user_id=None):
     autor = post.user.username if post.user else 'Usuario Anónimo'
-    is_admin = (autor == ADMIN_USERNAME)
+    is_admin = post.user.is_admin if post.user else False
 
     return {
         "id": post.id,
@@ -170,6 +192,16 @@ def api_posts():
         if not current_user.is_authenticated:
             return jsonify({"error": "No autenticado"}), 401
 
+        # Rate limiting for posting: 20 per hour
+        @limiter.limit("20 per hour")
+        def limit_posts():
+            pass
+        
+        try:
+            limit_posts()
+        except Exception:
+            return jsonify({"error": "Límite de publicaciones excedido (20 por hora)"}), 429
+
         try:
             data = request.get_json(force=True)
         except Exception:
@@ -180,6 +212,9 @@ def api_posts():
 
         if not content:
             return jsonify({"error": "El contenido no puede estar vacío"}), 400
+
+        if len(content) > 500:
+            return jsonify({"error": "El contenido no puede exceder los 500 caracteres"}), 400
 
         new_post = Post(user_id=current_user.id, content=content, parent_id=parent_id)
         db.session.add(new_post)
@@ -203,7 +238,7 @@ def delete_post(post_id):
     if not post:
         return jsonify({"error": "Post no encontrado"}), 404
 
-    if post.user != current_user and current_user.username != 'oscarmart22':
+    if post.user != current_user and not current_user.is_admin:
         abort(403)
 
     def delete_recursive(p):
