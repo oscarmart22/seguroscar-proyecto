@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foro - Seguroscar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .forum-container {
+            max-width: 800px;
+            margin: 120px auto 40px;
+            padding: 0 1rem;
+        }
+        .post-form-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+        .post-form-card h3 { margin-bottom: 1rem; }
+        .post-input {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            color: var(--color-text);
+            font-family: inherit;
+            margin-bottom: 1rem;
+            resize: vertical;
+        }
+        .post-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        .login-prompt {
+            text-align: center;
+            padding: 2rem;
+            background: var(--color-bg-card);
+            border: 1px dashed var(--color-border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+        }
+        
+        .post-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            transition: transform var(--transition-fast);
+        }
+        .post-card:hover { border-color: var(--color-border-hover); }
+        .post-votes {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 40px;
+        }
+        .vote-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .vote-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--color-text); }
+        .vote-count { font-weight: 600; font-size: 0.9rem; }
+        
+        .post-content-area { flex-grow: 1; }
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+        .post-author { font-weight: 600; color: var(--color-text); }
+        .post-body { line-height: 1.6; color: var(--color-text); white-space: pre-wrap;}
+    </style>
+</head>
+<body>
+    <nav class="navbar scrolled" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(24px);">
+        <div class="navbar__inner">
+            <div class="navbar__left">
+                <a href="/" class="navbar__logo" style="gap: 0; align-items: center;">
+                    <span style="font-size: 24px; font-weight: 800; letter-spacing: -1px; color: #ffffff;">segur</span>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 1px;">
+                        <defs>
+                            <linearGradient id="logoBlueGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00d4ff" />
+                                <stop offset="100%" stop-color="#0055aa" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad2)" fill="#000000" />
+                        <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad2)" />
+                        <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad2)" stroke="none" />
+                    </svg>
+                    <span style="font-size: 24px; font-weight: 800; letter-spacing: -1px; color: #ffffff;">scar</span>
+                </a>
+            </div>
+            <div class="navbar__right">
+                <a href="/" class="navbar__btn navbar__btn--outline">Volver al Inicio</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="forum-container">
+        <div class="section__header" style="text-align: left; margin-bottom: 2rem;">
+            <h1 class="section__title">Foro de Discusión</h1>
+            <p class="section__subtitle">Comparte dudas y opiniones sobre seguridad biométrica.</p>
+        </div>
+
+        <div id="loginPrompt" class="login-prompt">
+            <p>Debes iniciar sesión para publicar en el foro.</p>
+            <a href="/" class="btn btn--primary" style="margin-top: 1rem;">Ir al inicio a loguearse</a>
+        </div>
+
+        <div id="postFormCard" class="post-form-card">
+            <h3>Crear una publicación</h3>
+            <form id="newPostForm">
+                <textarea id="postContent" class="post-input" placeholder="¿Qué tienes en mente?" required></textarea>
+                <button type="submit" class="btn btn--primary" id="submitPostBtn">Publicar</button>
+                <span id="postMsg" style="margin-left: 1rem; font-size: 0.9rem;"></span>
+            </form>
+        </div>
+
+        <div id="postsList">
+            <p style="text-align: center; color: var(--color-text-muted);">Cargando publicaciones...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let loggedIn = false;
+
+            fetch('/api/me')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        loggedIn = true;
+                        document.getElementById('loginPrompt').style.display = 'none';
+                        document.getElementById('postFormCard').style.display = 'block';
+                    }
+                    loadPosts();
+                });
+
+            const postsList = document.getElementById('postsList');
+
+            function loadPosts() {
+                fetch('/api/posts')
+                    .then(res => res.json())
+                    .then(posts => {
+                        postsList.innerHTML = '';
+                        if (posts.length === 0) {
+                            postsList.innerHTML = '<p style="text-align: center; color: var(--color-text-muted);">Aún no hay publicaciones. ¡Sé el primero!</p>';
+                            return;
+                        }
+                        
+                        posts.forEach(post => {
+                            const totalVotes = post.upvotes - post.downvotes;
+                            const postHtml = `
+                                <div class="post-card">
+                                    <div class="post-votes">
+                                        <button class="vote-btn" onclick="vote(${post.id}, 'up')" title="Upvote">▲</button>
+                                        <span class="vote-count">${totalVotes}</span>
+                                        <button class="vote-btn" onclick="vote(${post.id}, 'down')" title="Downvote">▼</button>
+                                    </div>
+                                    <div class="post-content-area">
+                                        <div class="post-header">
+                                            <span class="post-author">${post.username}</span>
+                                            <span>${post.timestamp}</span>
+                                        </div>
+                                        <div class="post-body">${escapeHtml(post.content)}</div>
+                                    </div>
+                                </div>
+                            `;
+                            postsList.innerHTML += postHtml;
+                        });
+                    });
+            }
+
+            document.getElementById('newPostForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const content = document.getElementById('postContent').value;
+                const btn = document.getElementById('submitPostBtn');
+                const msg = document.getElementById('postMsg');
+                
+                btn.disabled = true;
+                msg.textContent = 'Publicando...';
+                
+                fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    if (data.error) {
+                        msg.style.color = 'var(--color-danger)';
+                        msg.textContent = data.error;
+                    } else {
+                        msg.style.color = '#00ffa3';
+                        msg.textContent = 'Publicado exitosamente';
+                        document.getElementById('postContent').value = '';
+                        setTimeout(() => msg.textContent = '', 3000);
+                        loadPosts();
+                    }
+                });
+            });
+
+            window.vote = function(postId, type) {
+                if (!loggedIn) {
+                    alert("Debes iniciar sesión para votar");
+                    return;
+                }
+                fetch('/api/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: postId, vote_type: type })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) alert(data.error);
+                    else loadPosts();
+                });
+            };
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;")
+                     .replace(/'/g, "&#039;");
+            }
+        });
+    </script>
+</body>
+</html>

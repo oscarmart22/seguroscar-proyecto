@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,6 +15,16 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    upvotes = db.Column(db.Integer, default=0)
+    downvotes = db.Column(db.Integer, default=0)
+
+    user = db.relationship('User', backref=db.backref('posts', lazy=True))
 
 with app.app_context():
     db.create_all()
@@ -76,6 +87,59 @@ def get_me():
     if 'user_id' in session:
         return jsonify({"logged_in": True, "username": session['username']})
     return jsonify({"logged_in": False})
+
+@app.route('/foro')
+def foro():
+    return send_from_directory('.', 'foro.html')
+
+@app.route('/api/posts', methods=['GET', 'POST'])
+def api_posts():
+    if request.method == 'POST':
+        if 'user_id' not in session:
+            return jsonify({"error": "No autenticado"}), 401
+        data = request.get_json()
+        content = data.get('content')
+        if not content:
+            return jsonify({"error": "El contenido no puede estar vacío"}), 400
+        new_post = Post(user_id=session['user_id'], content=content)
+        db.session.add(new_post)
+        db.session.commit()
+        return jsonify({"message": "Post creado"}), 201
+    
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    posts_data = []
+    for post in posts:
+        posts_data.append({
+            "id": post.id,
+            "username": post.user.username,
+            "content": post.content,
+            "timestamp": post.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "upvotes": post.upvotes,
+            "downvotes": post.downvotes
+        })
+    return jsonify(posts_data), 200
+
+@app.route('/api/vote', methods=['POST'])
+def api_vote():
+    if 'user_id' not in session:
+        return jsonify({"error": "No autenticado"}), 401
+    data = request.get_json()
+    post_id = data.get('post_id')
+    vote_type = data.get('vote_type')
+    
+    post = Post.query.get(post_id)
+    if not post:
+        return jsonify({"error": "Post no encontrado"}), 404
+        
+    if vote_type == 'up':
+        post.upvotes += 1
+    elif vote_type == 'down':
+        post.downvotes += 1
+    else:
+        return jsonify({"error": "Tipo de voto inválido"}), 400
+        
+    db.session.commit()
+    return jsonify({"message": "Voto registrado"}), 200
 
 @app.route('/<path:path>')
 def send_static(path):
