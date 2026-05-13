@@ -289,11 +289,17 @@
             }
             repliesHtml += '</div>';
 
-            var isOwnerOrAdmin = (loggedIn && (currentUsername === post.username || currentUsername === 'oscarmart22'));
             var manageActions = '';
-            if (isOwnerOrAdmin) {
-                manageActions = '<button class="btn-manage btn-edit" data-edit-id="' + post.id + '" title="Editar">&#9998;</button>' +
-                                '<button class="btn-manage btn-delete" data-delete-id="' + post.id + '" title="Eliminar">&#128465;</button>';
+            if (loggedIn) {
+                var isOwner = (currentUsername === post.username);
+                var isAdmin = (currentUsername === 'oscarmart22');
+
+                if (isOwner) {
+                    manageActions += '<button class="btn-manage btn-edit" data-edit-id="' + post.id + '" title="Editar">&#9998;</button>';
+                }
+                if (isOwner || isAdmin) {
+                    manageActions += '<button class="btn-manage btn-delete" data-delete-id="' + post.id + '" title="Eliminar">&#128465;</button>';
+                }
             }
 
             return '<div class="glass-card post-card" id="post-' + post.id + '">'

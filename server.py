@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -203,12 +203,8 @@ def delete_post(post_id):
     if not post:
         return jsonify({"error": "Post no encontrado"}), 404
 
-    # Permission check
-    is_owner = (post.user_id == current_user.id)
-    is_admin = (current_user.username == ADMIN_USERNAME)
-
-    if not (is_owner or is_admin):
-        return jsonify({"error": "No tienes permiso para borrar este post"}), 403
+    if post.user != current_user and current_user.username != 'oscarmart22':
+        abort(403)
 
     def delete_recursive(p):
         for child in p.replies:
@@ -226,8 +222,8 @@ def edit_post(post_id):
     if not post:
         return jsonify({"error": "Post no encontrado"}), 404
 
-    if post.user_id != current_user.id:
-        return jsonify({"error": "Solo el autor puede editar este post"}), 403
+    if post.user != current_user:
+        abort(403)
 
     try:
         data = request.get_json(force=True)
