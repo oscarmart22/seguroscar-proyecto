@@ -78,7 +78,7 @@ class HTTPServerV6(HTTPServer):
 
 
 if __name__ == '__main__':
-    port = 8080
+    port = int(os.environ.get('PORT', 8080))
 
     # Start IPv4 server
     server4 = HTTPServer(('0.0.0.0', port), RangeHTTPRequestHandler)
