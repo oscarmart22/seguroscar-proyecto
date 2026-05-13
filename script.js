@@ -303,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     authSection.innerHTML = `
                         <span style="color: var(--color-text-heading); font-weight: 600; margin-right: 1rem;">Hola, ${data.username}</span>
                         <a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border: 1px solid var(--color-danger); color: var(--color-danger);">Cerrar Sesión</a>
-                        <a href="#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
                     `;
                     document.getElementById('logoutBtn').addEventListener('click', (e) => {
                         e.preventDefault();

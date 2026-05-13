@@ -1759,11 +1759,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .mobile-only { display: none; }
 
+/* PC: Ocultar overlay móvil completamente */
+#mobile-menu {
+    display: none !important;
+}
+
 @media (max-width: 768px) {
     .navbar__toggle { display: flex; }
 
     .navbar__nav-links {
-        display: none;
+        display: none !important;
     }
 
     #mobile-menu {
@@ -1772,7 +1777,7 @@ h1, h2, h3, h4, h5, h6 {
         left: 0;
         width: 100%;
         height: 100%;
-        display: none;
+        display: none !important; /* Sobrescrito por .active */
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -1783,7 +1788,7 @@ h1, h2, h3, h4, h5, h6 {
     }
     
     #mobile-menu.active {
-        display: flex;
+        display: flex !important;
     }
 
     #closeMobileMenu {
