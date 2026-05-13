@@ -6,9 +6,13 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-app.config['SECRET_KEY'] = 'una_llave_muy_segura_y_larga_12345'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+
+db_url = os.getenv('DATABASE_URL')
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
