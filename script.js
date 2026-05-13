@@ -3,12 +3,6 @@
    ============================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // Helper to get CSRF token from cookie
-    function getCSRFToken() {
-        const tag = document.querySelector('meta[name="csrf-token"]');
-        return tag ? tag.getAttribute('content') : '';
-    }
 
     // ─── Navbar scroll effect ───
     const navbar = document.getElementById('navbar');
@@ -32,59 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(mobileMenu) mobileMenu.classList.remove('active');
         if(navToggle) navToggle.classList.remove('active');
         document.body.style.overflow = '';
-    }
-
-    // --- Password Strength Logic ---
-    const passwordInput = document.getElementById('password');
-    const strengthMeter = document.getElementById('passwordStrength');
-    const strengthFill = document.querySelector('.strength-meter-fill');
-    const strengthText = document.getElementById('passwordStrengthText');
-
-    if (passwordInput) {
-        passwordInput.addEventListener('input', () => {
-            // Only show strength meter for registration
-            if (isLoginMode) {
-                if (strengthMeter) strengthMeter.style.display = 'none';
-                if (strengthText) strengthText.style.display = 'none';
-                return;
-            }
-            const val = passwordInput.value;
-            if (!val) {
-                if (strengthMeter) strengthMeter.style.display = 'none';
-                if (strengthText) strengthText.style.display = 'none';
-                return;
-            }
-            if (strengthMeter) strengthMeter.style.display = 'block';
-            if (strengthText) strengthText.style.display = 'block';
-            
-            let score = 0;
-            if (val.length >= 8) score++;
-            if (/[0-9]/.test(val)) score++;
-            if (/[^A-Za-z0-9]/.test(val)) score++;
-            
-            let color = '#ff4d6a'; // weak
-            let width = '33%';
-            let label = 'Débil';
-            
-            if (score === 2) {
-                color = '#ffd166'; // medium
-                width = '66%';
-                label = 'Media';
-            } else if (score === 3) {
-                color = '#00ffa3'; // strong
-                width = '100%';
-                label = 'Fuerte';
-            }
-            
-            if (strengthFill) {
-                strengthFill.style.width = width;
-                strengthFill.style.backgroundColor = color;
-            }
-            if (strengthText) {
-                strengthText.textContent = 'Fuerza: ' + label;
-                strengthText.style.color = color;
-            }
-        });
     }
 
     if (navToggle) {
@@ -365,10 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     document.getElementById('logoutBtn').addEventListener('click', (e) => {
                         e.preventDefault();
-                        fetch('/logout', { 
-                            method: 'POST',
-                            headers: { 'X-CSRFToken': getCSRFToken() }
-                        }).then(() => {
+                        fetch('/logout', { method: 'POST' }).then(() => {
                             window.location.reload();
                         });
                     });
@@ -426,23 +364,16 @@ document.addEventListener('DOMContentLoaded', () => {
         authError.textContent = '';
         authForm.reset();
         
-        const confirmGroup = document.getElementById('confirmPasswordGroup');
-        const confirmInput = document.getElementById('confirm_password');
-
         if (isLoginMode) {
             modalTitle.textContent = 'Iniciar Sesión';
             authSubmit.textContent = 'Ingresar';
             authToggleText.textContent = '¿No tienes cuenta?';
             authToggleLink.textContent = 'Regístrate';
-            if (confirmGroup) confirmGroup.style.display = 'none';
-            if (confirmInput) confirmInput.required = false;
         } else {
             modalTitle.textContent = 'Crear Cuenta';
             authSubmit.textContent = 'Registrarse';
             authToggleText.textContent = '¿Ya tienes cuenta?';
             authToggleLink.textContent = 'Inicia sesión';
-            if (confirmGroup) confirmGroup.style.display = 'block';
-            if (confirmInput) confirmInput.required = true;
         }
         
         authModal.classList.add('active');
@@ -480,27 +411,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('password').value;
             const endpoint = isLoginMode ? '/login' : '/register';
             
-            const payload = { username, password };
-            if (!isLoginMode) {
-                payload.confirm_password = document.getElementById('confirm_password').value;
-            }
-
             authSubmit.disabled = true;
             authSubmit.textContent = 'Procesando...';
 
             fetch(endpoint, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: JSON.stringify(payload)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
             })
-            .then(res => {
-                return res.json()
-                    .catch(() => ({ error: 'Respuesta inválida del servidor' }))
-                    .then(data => ({ status: res.status, body: data }));
-            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
             .then(res => {
                 authSubmit.disabled = false;
                 if (res.status >= 200 && res.status < 300) {
@@ -511,20 +430,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         closeAuthModal();
                         checkAuth();
+                        // If we are on /login or /register page directly, redirect to / to clear url
                         if (window.location.pathname === '/login' || window.location.pathname === '/register') {
                             window.location.href = '/';
                         }
                     }
                 } else {
-                    authError.textContent = res.body.error || 'Error en la petición';
+                    authError.textContent = res.body.error || 'Ocurrió un error inesperado';
                     authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
                 }
             })
             .catch(err => {
                 authSubmit.disabled = false;
-                authError.textContent = 'Error de conexión o seguridad';
+                authError.textContent = 'Error de conexión';
                 authSubmit.textContent = isLoginMode ? 'Ingresar' : 'Registrarse';
-                console.error("Auth Error:", err);
             });
         });
     }

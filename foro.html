@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Foro - Seguroscar</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -262,7 +261,6 @@
         <div id="postFormCard" class="glass-card post-form-card">
             <h3>Crear una publicación</h3>
             <form id="newPostForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <textarea id="postContent" class="post-input" placeholder="¿Qué tienes en mente?" required></textarea>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <button type="submit" class="btn btn--primary" id="submitPostBtn">Publicar</button>
@@ -288,11 +286,6 @@
             var d = document.createElement('div');
             d.textContent = str;
             return d.innerHTML;
-        }
-
-        function getCSRFToken() {
-            var tag = document.querySelector('meta[name="csrf-token"]');
-            return tag ? tag.getAttribute('content') : '';
         }
 
         function linkify(text) {
@@ -410,10 +403,7 @@
                             '<a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border: 1px solid var(--color-danger); color: var(--color-danger);">Cerrar Sesión</a>';
                         document.getElementById('logoutBtn').addEventListener('click', function(e) {
                             e.preventDefault();
-                            fetch('/logout', { 
-                                method: 'POST',
-                                headers: { 'X-CSRFToken': getCSRFToken() }
-                            }).then(function() { window.location.reload(); });
+                            fetch('/logout', { method: 'POST' }).then(function() { window.location.reload(); });
                         });
                     }
                     
@@ -423,10 +413,7 @@
                             '<a href="#" id="mobileLogoutBtn" class="mobile-menu-link" style="color: var(--color-danger);">Cerrar Sesión</a>';
                         document.getElementById('mobileLogoutBtn').addEventListener('click', function(e) {
                             e.preventDefault();
-                            fetch('/logout', { 
-                                method: 'POST',
-                                headers: { 'X-CSRFToken': getCSRFToken() }
-                            }).then(function() { window.location.reload(); });
+                            fetch('/logout', { method: 'POST' }).then(function() { window.location.reload(); });
                         });
                     }
                 } else {
@@ -493,10 +480,7 @@
 
             fetch('/api/posts', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content, parent_id: null })
             })
             .then(function(res) { return res.json(); })
@@ -538,10 +522,7 @@
                 if (!postId) return;
                 if (!confirm('¿Estás seguro de que quieres eliminar este post?')) return;
 
-                fetch('/api/posts/delete/' + postId, { 
-                    method: 'DELETE',
-                    headers: { 'X-CSRFToken': getCSRFToken() }
-                })
+                fetch('/api/posts/delete/' + postId, { method: 'DELETE' })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.error) { alert(data.error); return; }
@@ -564,10 +545,7 @@
                 if (newText !== null && newText.trim() !== '' && newText !== currentText) {
                     fetch('/api/posts/edit/' + postId, {
                         method: 'PUT',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCSRFToken()
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ content: newText.trim() })
                     })
                     .then(function(res) { return res.json(); })
@@ -609,10 +587,7 @@
 
             fetch('/api/posts', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content, parent_id: parseInt(parentId) })
             })
             .then(function(res) { return res.json(); })

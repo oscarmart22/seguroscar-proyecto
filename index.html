@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description"
         content="Seguroscar — Seguro especializado para proteger los datos biométricos de clientes de compañías telefónicas en México. Encriptación, monitoreo y ciberseguridad.">
     <meta name="keywords"
@@ -962,7 +961,6 @@
                 <h3 id="modalTitle">Iniciar Sesión</h3>
             </div>
             <form id="authForm" class="auth-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label for="username">Usuario</label>
                     <input type="text" id="username" name="username" required>
@@ -970,14 +968,6 @@
                 <div class="form-group">
                     <label for="password">Contraseña</label>
                     <input type="password" id="password" name="password" required>
-                    <div id="passwordStrength" class="strength-meter" style="display: none;">
-                        <div class="strength-meter-fill"></div>
-                    </div>
-                    <small id="passwordStrengthText" style="display: none;"></small>
-                </div>
-                <div class="form-group" id="confirmPasswordGroup" style="display: none;">
-                    <label for="confirm_password">Confirmar Contraseña</label>
-                    <input type="password" id="confirm_password" name="confirm_password">
                 </div>
                 <button type="submit" class="btn btn--primary btn--block" id="authSubmit">Ingresar</button>
                 <div id="authError" class="auth-error"></div>
