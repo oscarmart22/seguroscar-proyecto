@@ -14,6 +14,7 @@ if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -58,8 +59,11 @@ class Vote(db.Model):
 # ─── DB Init ───
 
 with app.app_context():
-    db.create_all()
-    print("[INIT] Base de datos lista.")
+    try:
+        db.create_all()
+        print("[INIT] Base de datos lista.")
+    except Exception as e:
+        print(f"[INIT] Error o tablas ya existentes: {e}")
 
 # ─── Global error handler: ALWAYS return JSON ───
 
