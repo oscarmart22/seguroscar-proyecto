@@ -20,8 +20,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-ADMIN_USERNAME = 'oscarmart22'
-
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -32,6 +30,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -141,7 +140,11 @@ def logout():
 @app.route('/api/me', methods=['GET'])
 def get_me():
     if current_user.is_authenticated:
-        return jsonify({"logged_in": True, "username": current_user.username})
+        return jsonify({
+            "logged_in": True,
+            "username": current_user.username,
+            "is_admin": getattr(current_user, 'is_admin', False)
+        })
     return jsonify({"logged_in": False})
 
 @app.route('/foro')
@@ -152,7 +155,7 @@ def foro():
 
 def serialize_post(post, current_user_id=None):
     autor = post.user.username if post.user else 'Usuario Anónimo'
-    is_admin = (autor == ADMIN_USERNAME)
+    is_admin = post.user.is_admin if post.user else False
 
     return {
         "id": post.id,
@@ -203,7 +206,9 @@ def delete_post(post_id):
     if not post:
         return jsonify({"error": "Post no encontrado"}), 404
 
-    if post.user != current_user and current_user.username != 'oscarmart22':
+    # Permission check: owner or admin
+    is_admin = getattr(current_user, 'is_admin', False)
+    if post.user != current_user and not is_admin:
         abort(403)
 
     def delete_recursive(p):

@@ -107,6 +107,10 @@
             font-weight: 700;
             color: #f0f0f0;
         }
+        .post-author-admin {
+            color: #ffd700; /* Yellow for admin */
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
         .badge-admin {
             display: inline-block;
             background: linear-gradient(135deg, #ffd700, #f0a500);
@@ -280,6 +284,7 @@
 
         var loggedIn = false;
         var currentUsername = null;
+        var currentIsAdmin = false;
         var postsList = document.getElementById('postsList');
 
         function esc(str) {
@@ -333,7 +338,7 @@
             var manageActions = '';
             if (loggedIn) {
                 var isOwner = (currentUsername === post.username);
-                var isAdmin = (currentUsername === 'oscarmart22');
+                var isAdmin = currentIsAdmin;
 
                 if (isOwner) {
                     manageActions += '<button class="btn-manage btn-edit" data-edit-id="' + post.id + '" title="Editar">&#9998;</button>';
@@ -347,7 +352,7 @@
                 + '<div class="post-content-area" style="width:100%;">'
                 +   '<div class="post-header">'
                 +     '<div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; flex-grow:1;">'
-                +       '<span class="post-author">' + esc(post.username) + '</span>'
+                +       '<span class="post-author' + (post.is_admin ? ' post-author-admin' : '') + '">' + esc(post.username) + '</span>'
                 +       adminBadge
                 +       '<span class="post-time" title="' + esc(post.timestamp || '') + '">' + formatTimeAgo(post.timestamp) + '</span>'
                 +     '</div>'
@@ -394,6 +399,7 @@
                 if (data.logged_in) {
                     loggedIn = true;
                     currentUsername = data.username;
+                    currentIsAdmin = data.is_admin;
                     document.getElementById('loginPrompt').style.display = 'none';
                     document.getElementById('postFormCard').style.display = 'block';
                     
