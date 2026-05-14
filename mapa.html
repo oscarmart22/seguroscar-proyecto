@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Global — Seguroscar</title>
+    <meta name="description" content="Red Global de Seguroscar: infraestructura de protección biométrica desplegada en ciudades clave de México y el mundo.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #080c14;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── Page layout ── */
+        .map-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding-top: 80px; /* navbar height */
+        }
+
+        /* ── Header strip ── */
+        .map-header {
+            padding: 3rem 2rem 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .map-header__tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #00d4ff;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 4px 14px;
+            border-radius: 100px;
+            margin-bottom: 1rem;
+        }
+        .map-header h1 {
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #fff;
+            margin-bottom: 0.75rem;
+            line-height: 1.15;
+        }
+        .map-header h1 span {
+            background: linear-gradient(90deg, #00d4ff, #0072ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .map-header p {
+            color: #7a8899;
+            font-size: 1rem;
+            max-width: 560px;
+            line-height: 1.7;
+        }
+
+        /* ── Stats row ── */
+        .map-stats {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            padding: 0 2rem 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .map-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+        }
+        .map-stat__dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            box-shadow: 0 0 8px rgba(0,212,255,0.8);
+            flex-shrink: 0;
+        }
+        .map-stat__val {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+        .map-stat__label {
+            font-size: 0.8rem;
+            color: #7a8899;
+        }
+
+        /* ── Map container ── */
+        .map-wrapper {
+            flex: 1;
+            padding: 0 2rem 3rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 540px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.15);
+            box-shadow:
+                0 0 0 1px rgba(0,212,255,0.08),
+                0 20px 60px rgba(0,0,0,0.5),
+                0 0 80px rgba(0, 212, 255, 0.05);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Leaflet overrides to match dark theme ── */
+        .leaflet-container {
+            background: #080c14 !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .leaflet-control-zoom {
+            border: 1px solid rgba(0,212,255,0.2) !important;
+            background: rgba(8,12,20,0.9) !important;
+            backdrop-filter: blur(12px);
+            border-radius: 10px !important;
+            overflow: hidden;
+        }
+        .leaflet-control-zoom a {
+            background: transparent !important;
+            color: #00d4ff !important;
+            border-bottom: 1px solid rgba(0,212,255,0.2) !important;
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 32px !important;
+            font-size: 1.1rem !important;
+            transition: background 0.2s;
+        }
+        .leaflet-control-zoom a:last-child { border-bottom: none !important; }
+        .leaflet-control-zoom a:hover { background: rgba(0,212,255,0.1) !important; }
+        .leaflet-control-attribution {
+            background: rgba(8,12,20,0.8) !important;
+            color: #444 !important;
+            font-size: 0.65rem !important;
+        }
+        .leaflet-control-attribution a { color: #555 !important; }
+
+        /* ── Custom popup styles ── */
+        .leaflet-popup-content-wrapper {
+            background: rgba(10, 15, 26, 0.97) !important;
+            border: 1px solid rgba(0, 212, 255, 0.3) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.1) !important;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+        .leaflet-popup-tip-container { display: none !important; }
+        .leaflet-popup-close-button {
+            color: #00d4ff !important;
+            top: 8px !important;
+            right: 10px !important;
+            font-size: 1.1rem !important;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            width: auto !important;
+        }
+
+        /* ── Custom popup card ── */
+        .popup-card {
+            padding: 1.2rem 1.5rem;
+            min-width: 240px;
+        }
+        .popup-card__city {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #00d4ff;
+            margin-bottom: 0.3rem;
+        }
+        .popup-card__company {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.4rem;
+            line-height: 1.3;
+        }
+        .popup-card__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: #7dd3a8;
+            background: rgba(0, 200, 120, 0.1);
+            border: 1px solid rgba(0, 200, 120, 0.25);
+            border-radius: 100px;
+            padding: 3px 10px;
+            font-weight: 600;
+        }
+        .popup-card__badge::before {
+            content: '';
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #00ffa3;
+            box-shadow: 0 0 6px rgba(0,255,163,0.7);
+        }
+
+        /* ── Pulsing marker ── */
+        .pulse-marker {
+            position: relative;
+            width: 18px;
+            height: 18px;
+        }
+        .pulse-marker__core {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            box-shadow: 0 0 8px rgba(0,212,255,0.9), 0 0 16px rgba(0,212,255,0.5);
+            z-index: 2;
+        }
+        .pulse-marker__ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 212, 255, 0.6);
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        .pulse-marker__ring--2 {
+            animation-delay: 0.6s;
+        }
+        .pulse-marker__ring--3 {
+            animation-delay: 1.2s;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3.5);
+                opacity: 0;
+            }
+        }
+
+        /* ── Legend ── */
+        .map-legend {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 1.25rem 1.5rem;
+            margin-top: 1.25rem;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+        }
+        .map-legend__title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .map-legend__item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: #888;
+        }
+        .map-legend__dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            box-shadow: 0 0 6px rgba(0,212,255,0.7);
+            flex-shrink: 0;
+        }
+        .map-legend__dot--active { background: #00ffa3; box-shadow: 0 0 6px rgba(0,255,163,0.7); }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .map-header { padding: 2rem 1rem 1rem; }
+            .map-stats { padding: 0 1rem 1.5rem; gap: 1rem; }
+            .map-wrapper { padding: 0 1rem 2rem; }
+            #map { height: 380px; border-radius: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============ MOBILE FULLSCREEN MENU ============ -->
+    <div id="mobile-menu">
+        <button id="closeMobileMenu" aria-label="Cerrar menú">&times;</button>
+        <a href="/#hero" class="mobile-menu-link">Inicio</a>
+        <a href="/#producto" class="mobile-menu-link">Producto</a>
+        <a href="/#mercado" class="mobile-menu-link">Mercado</a>
+        <a href="/foro" class="mobile-menu-link">Foro</a>
+        <a href="/mapa" class="mobile-menu-link" style="color: var(--color-primary);">Red Global</a>
+        <a href="/#contacto" class="mobile-menu-link">Contacto</a>
+        <div id="mobileOverlayAuthContainer" style="display:flex; flex-direction:column; align-items:center;">
+            <a href="/login?next=/mapa" class="mobile-menu-link">Iniciar Sesión</a>
+        </div>
+    </div>
+
+    <nav class="navbar scrolled" id="navbar" style="background: rgba(0,0,0,0.88); backdrop-filter: blur(24px);">
+        <div class="navbar__inner">
+            <div class="navbar__left">
+                <a href="/" class="navbar__logo" id="navLogo" style="gap: 0; align-items: center;">
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">segur</span>
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 1px; transform: translateY(2px);">
+                        <defs>
+                            <linearGradient id="logoBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00d4ff" />
+                                <stop offset="100%" stop-color="#0055aa" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad)" fill="#000000" />
+                        <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad)" />
+                        <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad)" stroke="none" />
+                    </svg>
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">scar</span>
+                </a>
+                <ul class="navbar__nav-links" id="navLinks">
+                    <li><a href="/#hero" class="navbar__link">Inicio</a></li>
+                    <li><a href="/#producto" class="navbar__link">Producto</a></li>
+                    <li><a href="/#mercado" class="navbar__link">Mercado</a></li>
+                    <li><a href="/foro" class="navbar__link">Foro</a></li>
+                    <li><a href="/mapa" class="navbar__link" style="color: var(--color-primary); font-weight: bold;">Red Global</a></li>
+                    <li><a href="/#contacto" class="navbar__link">Contacto</a></li>
+                </ul>
+            </div>
+            <div class="navbar__right" id="authSection">
+                <a href="#" id="loginBtn" class="navbar__btn navbar__btn--signin">Iniciar Sesión</a>
+                <a href="/#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
+            </div>
+            <button class="navbar__toggle" id="navToggle" aria-label="Abrir menú">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="map-page">
+        <!-- Header -->
+        <div class="map-header">
+            <span class="map-header__tag">Cobertura Internacional</span>
+            <h1>Red Global de <span>Protección</span></h1>
+            <p>Infraestructura de ciberseguridad biométrica desplegada en nodos estratégicos de México, España y Latinoamérica — operativa 24/7.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="map-stats">
+            <div class="map-stat">
+                <div class="map-stat__dot"></div>
+                <div>
+                    <div class="map-stat__val">6</div>
+                    <div class="map-stat__label">Nodos activos</div>
+                </div>
+            </div>
+            <div class="map-stat">
+                <div class="map-stat__dot"></div>
+                <div>
+                    <div class="map-stat__val">99.9%</div>
+                    <div class="map-stat__label">Uptime garantizado</div>
+                </div>
+            </div>
+            <div class="map-stat">
+                <div class="map-stat__dot"></div>
+                <div>
+                    <div class="map-stat__val">24/7</div>
+                    <div class="map-stat__label">Monitoreo continuo</div>
+                </div>
+            </div>
+            <div class="map-stat">
+                <div class="map-stat__dot"></div>
+                <div>
+                    <div class="map-stat__val">&lt; 50ms</div>
+                    <div class="map-stat__label">Latencia media</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Legend -->
+            <div class="map-legend">
+                <span class="map-legend__title">Leyenda</span>
+                <div class="map-legend__item">
+                    <div class="map-legend__dot"></div>
+                    Nodo protegido — activo
+                </div>
+                <div class="map-legend__item">
+                    <div class="map-legend__dot map-legend__dot--active"></div>
+                    Latencia &lt; 50ms
+                </div>
+                <span style="margin-left:auto; font-size:0.75rem; color:#444;">Haz clic en un nodo para más info</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ── Map initialization ──
+        var map = L.map('map', {
+            center: [19.43, -20],
+            zoom: 3,
+            minZoom: 2,
+            maxZoom: 10,
+            zoomControl: true,
+            scrollWheelZoom: true,
+            attributionControl: true
+        });
+
+        // CartoDB Dark Matter tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // ── Network nodes data ──
+        var nodes = [
+            {
+                lat: 19.4326,
+                lng: -99.1332,
+                city: 'Ciudad de México, MX',
+                company: 'Telcel',
+                description: 'Nodo principal — Centro de datos Tier IV'
+            },
+            {
+                lat: 20.6597,
+                lng: -103.3496,
+                city: 'Guadalajara, MX',
+                company: 'AT&T México',
+                description: 'Nodo regional occidente'
+            },
+            {
+                lat: 25.6866,
+                lng: -100.3161,
+                city: 'Monterrey, MX',
+                company: 'Movistar México',
+                description: 'Nodo regional norte'
+            },
+            {
+                lat: 40.4168,
+                lng: -3.7038,
+                city: 'Madrid, ES',
+                company: 'Telefónica España',
+                description: 'Nodo europeo — Hub EMEA'
+            },
+            {
+                lat: -23.5505,
+                lng: -46.6333,
+                city: 'São Paulo, BR',
+                company: 'Claro Brasil',
+                description: 'Nodo Latinoamérica Sur'
+            },
+            {
+                lat: 4.7110,
+                lng: -74.0721,
+                city: 'Bogotá, CO',
+                company: 'Tigo Colombia',
+                description: 'Nodo Latinoamérica Centro'
+            }
+        ];
+
+        // ── Build pulsing marker HTML ──
+        function createPulseIcon() {
+            return L.divIcon({
+                className: '',
+                html: '<div class="pulse-marker">' +
+                          '<div class="pulse-marker__core"></div>' +
+                          '<div class="pulse-marker__ring"></div>' +
+                          '<div class="pulse-marker__ring pulse-marker__ring--2"></div>' +
+                          '<div class="pulse-marker__ring pulse-marker__ring--3"></div>' +
+                      '</div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9],
+                popupAnchor: [0, -14]
+            });
+        }
+
+        // ── Build popup HTML ──
+        function buildPopup(node) {
+            return '<div class="popup-card">' +
+                       '<div class="popup-card__city">' + node.city + '</div>' +
+                       '<div class="popup-card__company">' + node.company + '</div>' +
+                       '<div class="popup-card__badge">Protegida por Seguroscar</div>' +
+                   '</div>';
+        }
+
+        // ── Place markers ──
+        nodes.forEach(function (node) {
+            var marker = L.marker([node.lat, node.lng], {
+                icon: createPulseIcon()
+            }).addTo(map);
+
+            marker.bindPopup(buildPopup(node), {
+                maxWidth: 300,
+                closeButton: true,
+                className: ''
+            });
+        });
+
+        // ── Auth / Navbar ──
+        fetch('/api/me')
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                var authSection = document.getElementById('authSection');
+                var mobileAuth = document.getElementById('mobileOverlayAuthContainer');
+
+                if (data.logged_in) {
+                    if (authSection) {
+                        authSection.innerHTML =
+                            '<span style="color:#fff;font-weight:600;margin-right:1rem;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border:1px solid var(--color-danger);color:var(--color-danger);">Cerrar Sesión</a>';
+                        document.getElementById('logoutBtn').addEventListener('click', function(e){
+                            e.preventDefault();
+                            fetch('/logout',{method:'POST'}).then(function(){ window.location.reload(); });
+                        });
+                    }
+                    if (mobileAuth) {
+                        mobileAuth.innerHTML =
+                            '<span class="mobile-menu-link" style="color:#fff;font-weight:600;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="mobileLogoutBtn" class="mobile-menu-link" style="color:var(--color-danger);">Cerrar Sesión</a>';
+                        document.getElementById('mobileLogoutBtn').addEventListener('click', function(e){
+                            e.preventDefault();
+                            fetch('/logout',{method:'POST'}).then(function(){ window.location.reload(); });
+                        });
+                    }
+                } else {
+                    var loginBtn = document.getElementById('loginBtn');
+                    if (loginBtn) {
+                        loginBtn.addEventListener('click', function(e){
+                            e.preventDefault();
+                            window.location.href = '/login?next=/mapa';
+                        });
+                    }
+                }
+            })
+            .catch(function(){});
+
+        // ── Mobile menu ──
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobile-menu');
+        var closeMobileMenuBtn = document.getElementById('closeMobileMenu');
+
+        function openMenu() { if(mobileMenu) mobileMenu.classList.add('active'); document.body.style.overflow='hidden'; }
+        function closeMenu() { if(mobileMenu) mobileMenu.classList.remove('active'); if(navToggle) navToggle.classList.remove('active'); document.body.style.overflow=''; }
+
+        if (navToggle) navToggle.addEventListener('click', function(){ navToggle.classList.add('active'); openMenu(); });
+        if (closeMobileMenuBtn) closeMobileMenuBtn.addEventListener('click', closeMenu);
+        if (mobileMenu) mobileMenu.querySelectorAll('a').forEach(function(l){ l.addEventListener('click', closeMenu); });
+
+    })();
+    </script>
+</body>
+</html>

@@ -151,6 +151,10 @@ def get_me():
 def foro():
     return send_from_directory('.', 'foro.html')
 
+@app.route('/mapa')
+def mapa():
+    return send_from_directory('.', 'mapa.html')
+
 # ─── Forum API ───
 
 def serialize_post(post, current_user_id=None):
