@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Informativa - Seguroscar</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: #0d0d0d;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .guide-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 140px 1.5rem 80px;
+        }
+
+        .guide-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .guide-header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #00d4ff, #0055aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .guide-header p {
+            font-size: 1.25rem;
+            color: #999;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .guide-card {
+            background-color: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .guide-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00d4ff, #7b39fc);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .guide-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .guide-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: #00d4ff;
+        }
+
+        .card-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke-width: 1.5;
+        }
+
+        .guide-card h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .guide-card p {
+            font-size: 1.05rem;
+            color: #b3b3b3;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .guide-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            margin-top: auto;
+        }
+
+        .guide-card li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #d0d0d0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .guide-card li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .guide-header h1 {
+                font-size: 2.25rem;
+            }
+            .guide-container {
+                padding-top: 110px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============ MOBILE FULLSCREEN MENU ============ -->
+    <div id="mobile-menu">
+        <button id="closeMobileMenu" aria-label="Cerrar menú">&times;</button>
+        <a href="/#hero" class="mobile-menu-link">Inicio</a>
+        <a href="/#producto" class="mobile-menu-link">Producto</a>
+        <a href="/#mercado" class="mobile-menu-link">Mercado</a>
+        <a href="/foro" class="mobile-menu-link">Foro</a>
+        <a href="/guia" class="mobile-menu-link" style="color: var(--color-primary); font-weight: bold;">Guía</a>
+        <a href="/#contacto" class="mobile-menu-link">Contacto</a>
+        <div id="mobileOverlayAuthContainer" style="display:flex; flex-direction:column; align-items:center;">
+            <a href="/login" class="mobile-menu-link">Iniciar Sesión</a>
+        </div>
+    </div>
+
+    <!-- === NAVBAR === -->
+    <nav class="navbar scrolled" id="navbar" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(24px);">
+        <div class="navbar__inner">
+            <div class="navbar__left">
+                <a href="/" class="navbar__logo" id="navLogo" style="gap: 0; align-items: center;">
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">segur</span>
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 1px; transform: translateY(2px);">
+                        <defs>
+                            <linearGradient id="logoBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00d4ff" />
+                                <stop offset="100%" stop-color="#0055aa" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="4" y="10" width="16" height="12" rx="3" ry="3" stroke="url(#logoBlueGrad)" fill="#000000" />
+                        <path d="M7 10V6a5 5 0 0 1 10 0v4" stroke="url(#logoBlueGrad)" />
+                        <circle cx="12" cy="16" r="2" fill="url(#logoBlueGrad)" stroke="none" />
+                    </svg>
+                    <span style="font-size: 38px; font-weight: 800; letter-spacing: -1.5px; color: #ffffff;">scar</span>
+                </a>
+                <ul class="navbar__nav-links" id="navLinks">
+                    <li><a href="/#hero" class="navbar__link">Inicio</a></li>
+                    <li><a href="/#producto" class="navbar__link">Producto</a></li>
+                    <li><a href="/#mercado" class="navbar__link">Mercado</a></li>
+                    <li><a href="/foro" class="navbar__link">Foro</a></li>
+                    <li><a href="/guia" class="navbar__link" style="color: var(--color-primary); font-weight: bold;">Guía</a></li>
+                    <li><a href="/#contacto" class="navbar__link">Contacto</a></li>
+                </ul>
+            </div>
+
+            <div class="navbar__right" id="authSection">
+                <a href="/login" id="loginBtn" class="navbar__btn navbar__btn--signin">Iniciar Sesión</a>
+                <a href="/#planes" class="navbar__btn navbar__btn--cta">Comenzar</a>
+            </div>
+
+            <button class="navbar__toggle" id="navToggle" aria-label="Abrir menú">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- === GUIDE CONTENT === -->
+    <div class="guide-container">
+        <div class="guide-header">
+            <h1>Guía de Seguridad Digital</h1>
+            <p>Conoce los conceptos clave para proteger tu identidad y mantener a salvo tu información más sensible en el mundo digital.</p>
+        </div>
+
+        <div class="cards-grid">
+            <!-- Card 1: Biometría Segura -->
+            <div class="guide-card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        <circle cx="12" cy="12" r="10" stroke-width="2" opacity="0.2"/>
+                    </svg>
+                </div>
+                <h2>Biometría Segura</h2>
+                <p>Los datos biométricos (huellas dactilares, rostro, iris) son únicos e irremplazables. A diferencia de una contraseña, <strong>no puedes cambiarlos si son robados</strong>; son "llaves permanentes" de tu identidad.</p>
+                <p>En Seguroscar garantizamos que tu biometría nunca sea expuesta mediante encriptación de nivel militar y bóvedas aisladas de alta seguridad.</p>
+                <ul>
+                    <li>Nunca compartas fotos de tus huellas o documentos oficiales.</li>
+                    <li>Exige saber cómo las empresas almacenan tu biometría.</li>
+                </ul>
+            </div>
+
+            <!-- Card 2: Higiene de Contraseñas -->
+            <div class="guide-card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h2>Higiene de Contraseñas</h2>
+                <p>Las contraseñas débiles son la principal causa de accesos no autorizados. Mantener una buena "higiene" digital es tu primera línea de defensa.</p>
+                <ul>
+                    <li><strong>Usa un gestor de contraseñas:</strong> (Como Bitwarden o 1Password) para generar y guardar claves largas y únicas.</li>
+                    <li><strong>Frases de contraseña:</strong> Combina palabras al azar (ej. <i>Caballo-Azul-Bicicleta-99!</i>) en lugar de palabras complejas y cortas.</li>
+                    <li><strong>Nunca repitas contraseñas</strong> en diferentes sitios web o aplicaciones.</li>
+                </ul>
+            </div>
+
+            <!-- Card 3: Privacidad Digital -->
+            <div class="guide-card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                        <line x1="3" y1="3" x2="21" y2="21" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h2>Privacidad Digital</h2>
+                <p>Tu celular emite constantemente un <strong>ID de Publicidad (Advertising ID)</strong> que permite a las empresas rastrear tu actividad en internet y aplicaciones para crear un perfil sobre ti.</p>
+                <ul>
+                    <li><strong>En iOS:</strong> Ve a Configuración > Privacidad y Seguridad > Rastreo, y desactiva "Permitir que las apps soliciten rastrearte".</li>
+                    <li><strong>En Android:</strong> Ve a Configuración > Privacidad > Anuncios, y selecciona "Borrar ID de publicidad".</li>
+                    <li>Revisa regularmente los permisos de ubicación y cámara de tus apps.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funcionalidad del menú móvil
+        var navToggle = document.getElementById('navToggle');
+        var mobileMenu = document.getElementById('mobile-menu');
+        var closeMobileMenuBtn = document.getElementById('closeMobileMenu');
+
+        function openMenu() {
+            if(mobileMenu) mobileMenu.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+            if(mobileMenu) mobileMenu.classList.remove('active');
+            if(navToggle) navToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (navToggle) {
+            navToggle.addEventListener('click', function() {
+                navToggle.classList.add('active');
+                openMenu();
+            });
+        }
+
+        if (closeMobileMenuBtn) {
+            closeMobileMenuBtn.addEventListener('click', closeMenu);
+        }
+
+        if (mobileMenu) {
+            mobileMenu.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', closeMenu);
+            });
+        }
+        
+        // Auth check para la nav
+        fetch('/api/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.logged_in) {
+                    var authSection = document.getElementById('authSection');
+                    if (authSection) {
+                        authSection.innerHTML = '<span style="color: #fff; font-weight: 600; margin-right: 1rem;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="logoutBtn" class="navbar__btn navbar__btn--outline" style="border: 1px solid var(--color-danger); color: var(--color-danger);">Cerrar Sesión</a>';
+                        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                            e.preventDefault();
+                            fetch('/logout', { method: 'POST' }).then(() => window.location.reload());
+                        });
+                    }
+                    
+                    var mobileAuth = document.getElementById('mobileOverlayAuthContainer');
+                    if (mobileAuth) {
+                        mobileAuth.innerHTML = '<span class="mobile-menu-link" style="color: #fff; font-weight: 600;">Hola, ' + data.username + '</span>' +
+                            '<a href="#" id="mobileLogoutBtn" class="mobile-menu-link" style="color: var(--color-danger);">Cerrar Sesión</a>';
+                        document.getElementById('mobileLogoutBtn').addEventListener('click', function(e) {
+                            e.preventDefault();
+                            fetch('/logout', { method: 'POST' }).then(() => window.location.reload());
+                        });
+                    }
+                }
+            })
+            .catch(() => {});
+    </script>
+</body>
+</html>
