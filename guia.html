@@ -47,102 +47,68 @@
             line-height: 1.6;
         }
 
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .guide-card {
+        .blog-post {
             background-color: #1a1a1a;
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 20px;
-            padding: 2.5rem;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 3rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .guide-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #00d4ff, #7b39fc);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .guide-card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(0, 212, 255, 0.3);
+        .blog-post:hover {
+            transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0, 212, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.3);
         }
 
-        .guide-card:hover::before {
-            opacity: 1;
+        .blog-image {
+            width: 100%;
+            height: 450px;
+            object-fit: cover;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .card-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 212, 255, 0.1);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .blog-content {
+            padding: 3rem;
+        }
+
+        .blog-title {
+            font-size: 2.75rem;
+            font-weight: 800;
             margin-bottom: 1.5rem;
-            color: #00d4ff;
+            background: linear-gradient(135deg, #00d4ff, #7b39fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            line-height: 1.2;
         }
 
-        .card-icon svg {
-            width: 32px;
-            height: 32px;
-            stroke-width: 1.5;
-        }
-
-        .guide-card h2 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: #ffffff;
-            letter-spacing: -0.5px;
-        }
-
-        .guide-card p {
-            font-size: 1.05rem;
-            color: #b3b3b3;
-            line-height: 1.7;
-            margin-bottom: 1rem;
-        }
-
-        .guide-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            margin-top: auto;
-        }
-
-        .guide-card li {
-            position: relative;
-            padding-left: 1.5rem;
-            margin-bottom: 0.75rem;
+        .blog-text {
             color: #d0d0d0;
-            font-size: 0.95rem;
-            line-height: 1.5;
+            line-height: 1.8;
+            font-size: 1.15rem;
         }
 
-        .guide-card li::before {
-            content: '→';
-            position: absolute;
-            left: 0;
-            color: #00d4ff;
-            font-weight: bold;
+        .blog-text p {
+            margin-bottom: 1.5rem;
+        }
+
+        .blog-text h3 {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .blog-text ul {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .blog-text li {
+            margin-bottom: 0.75rem;
         }
 
         @media (max-width: 768px) {
@@ -151,6 +117,18 @@
             }
             .guide-container {
                 padding-top: 110px;
+            }
+            .blog-image {
+                height: 250px;
+            }
+            .blog-content {
+                padding: 1.5rem;
+            }
+            .blog-title {
+                font-size: 2rem;
+            }
+            .blog-text {
+                font-size: 1.05rem;
             }
         }
     </style>
@@ -217,57 +195,35 @@
             <p>Conoce los conceptos clave para proteger tu identidad y mantener a salvo tu información más sensible en el mundo digital.</p>
         </div>
 
-        <div class="cards-grid">
-            <!-- Card 1: Biometría Segura -->
-            <div class="guide-card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        <circle cx="12" cy="12" r="10" stroke-width="2" opacity="0.2"/>
-                    </svg>
+        <div class="blog-post">
+            <img src="biometria.jpg" alt="Biometría" class="blog-image">
+            <div class="blog-content">
+                <h2 class="blog-title">¿Qué es la biometría?</h2>
+                <div class="blog-text">
+                    <p>Una definición breve: la biometría incluye las medidas biológicas, o características físicas, que se pueden utilizar para identificar a las personas.</p>
+                    <p>Por ejemplo, la clasificación de huellas dactilares, el reconocimiento facial y los exámenes de retina son todas formas de tecnología biométrica, pero estas son solo las opciones más conocidas.</p>
+                    <p>Los investigadores afirman que la forma de las orejas, la manera en que las personas se sientan y caminan, los olores corporales únicos, las venas de las manos e incluso las contorsiones faciales son otros identificadores únicos.</p>
+                    
+                    <h3>¿Cómo funciona la seguridad biométrica?</h3>
+                    <p>La identificación biométrica tiene un papel creciente en la seguridad cotidiana. Las características físicas son relativamente fijas e individuales, incluso en el caso de gemelos.</p>
+                    <p>La identidad biométrica única de cada persona puede utilizarse para reemplazar o al menos respaldar los sistemas de contraseña para computadoras, teléfonos y salas o edificios con acceso restringido.</p>
+                    <p>Una vez que los datos biométricos se obtienen y mapean, se guardan para compararse con intentos de acceso futuros. En la mayoría de los casos, estos datos se cifran y almacenan dentro del dispositivo o en un servidor remoto.</p>
+                    <p>Los escáneres biométricos son equipos de hardware que se utilizan para registrar biometría para la verificación de identidad. Estos escaneos se comparan con la base de datos almacenada para aprobar o rechazar el acceso al sistema.</p>
+                    <p>En otras palabras, la seguridad biométrica hace que tu cuerpo se convierta en la "clave" para desbloquear el acceso.</p>
+                    
+                    <h3>Ejemplos de seguridad biométrica</h3>
+                    <p>Estos son algunos ejemplos habituales de seguridad biométrica:</p>
+                    <ul>
+                        <li>Reconocimiento de voz;</li>
+                        <li>Lectura de huellas dactilares;</li>
+                        <li>Reconocimiento facial;</li>
+                        <li>Reconocimiento de iris;</li>
+                        <li>Sensores de frecuencia cardíaca.</li>
+                    </ul>
+                    <p>En la práctica, la seguridad biométrica ya tuvo usos efectivos en muchas industrias.</p>
+                    <p>La biometría avanzada se utiliza para proteger documentos confidenciales y objetos de valor. Citibank ya utiliza el reconocimiento de voz, y el banco británico Halifax está probando dispositivos que monitorean los latidos cardíacos para verificar la identidad de los clientes. Incluso Ford está considerando colocar sensores biométricos en los automóviles.</p>
+                    <p>A medida que se adoptan más de estos sistemas de seguridad, tenemos una mejor idea de las ventajas y desventajas de su uso en tiempo real.</p>
                 </div>
-                <h2>Biometría Segura</h2>
-                <p>Los datos biométricos (huellas dactilares, rostro, iris) son únicos e irremplazables. A diferencia de una contraseña, <strong>no puedes cambiarlos si son robados</strong>; son "llaves permanentes" de tu identidad.</p>
-                <p>En Seguroscar garantizamos que tu biometría nunca sea expuesta mediante encriptación de nivel militar y bóvedas aisladas de alta seguridad.</p>
-                <ul>
-                    <li>Nunca compartas fotos de tus huellas o documentos oficiales.</li>
-                    <li>Exige saber cómo las empresas almacenan tu biometría.</li>
-                </ul>
-            </div>
-
-            <!-- Card 2: Higiene de Contraseñas -->
-            <div class="guide-card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                </div>
-                <h2>Higiene de Contraseñas</h2>
-                <p>Las contraseñas débiles son la principal causa de accesos no autorizados. Mantener una buena "higiene" digital es tu primera línea de defensa.</p>
-                <ul>
-                    <li><strong>Usa un gestor de contraseñas:</strong> (Como Bitwarden o 1Password) para generar y guardar claves largas y únicas.</li>
-                    <li><strong>Frases de contraseña:</strong> Combina palabras al azar (ej. <i>Caballo-Azul-Bicicleta-99!</i>) en lugar de palabras complejas y cortas.</li>
-                    <li><strong>Nunca repitas contraseñas</strong> en diferentes sitios web o aplicaciones.</li>
-                </ul>
-            </div>
-
-            <!-- Card 3: Privacidad Digital -->
-            <div class="guide-card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                        <line x1="3" y1="3" x2="21" y2="21" stroke-width="2"/>
-                    </svg>
-                </div>
-                <h2>Privacidad Digital</h2>
-                <p>Tu celular emite constantemente un <strong>ID de Publicidad (Advertising ID)</strong> que permite a las empresas rastrear tu actividad en internet y aplicaciones para crear un perfil sobre ti.</p>
-                <ul>
-                    <li><strong>En iOS:</strong> Ve a Configuración > Privacidad y Seguridad > Rastreo, y desactiva "Permitir que las apps soliciten rastrearte".</li>
-                    <li><strong>En Android:</strong> Ve a Configuración > Privacidad > Anuncios, y selecciona "Borrar ID de publicidad".</li>
-                    <li>Revisa regularmente los permisos de ubicación y cámara de tus apps.</li>
-                </ul>
             </div>
         </div>
     </div>
