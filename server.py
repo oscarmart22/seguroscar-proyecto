@@ -188,9 +188,6 @@ def api_posts():
         if not content:
             return jsonify({"error": "El contenido no puede estar vacío"}), 400
 
-        if len(content) > 300:
-            return jsonify({"error": "El contenido no puede exceder 300 caracteres"}), 400
-
         new_post = Post(user_id=current_user.id, content=content, parent_id=parent_id)
         db.session.add(new_post)
         db.session.commit()
@@ -201,24 +198,10 @@ def api_posts():
             "post": serialize_post(new_post, current_user.id)
         }), 201
 
-    # GET with pagination
+    # GET
     current_uid = current_user.id if current_user.is_authenticated else None
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-
-    query = Post.query.filter_by(parent_id=None).order_by(Post.timestamp.desc())
-    total = query.count()
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    page = max(1, min(page, total_pages))
-
-    posts = query.offset((page - 1) * per_page).limit(per_page).all()
-
-    return jsonify({
-        "posts": [serialize_post(p, current_uid) for p in posts],
-        "page": page,
-        "total_pages": total_pages,
-        "total": total
-    }), 200
+    posts = Post.query.filter_by(parent_id=None).order_by(Post.timestamp.desc()).all()
+    return jsonify([serialize_post(p, current_uid) for p in posts]), 200
 
 @app.route('/api/posts/delete/<int:post_id>', methods=['DELETE'])
 @login_required
