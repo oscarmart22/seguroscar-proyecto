@@ -9,6 +9,38 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         * { box-sizing: border-box; }
+        
+        body {
+            background-color: #09090b;
+            color: #e4e8f1;
+            margin: 0;
+            position: relative;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stats-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .stats-glow--left {
+            background: #ffffff;
+            top: -150px;
+            left: -200px;
+        }
+
+        .stats-glow--right {
+            background: #a1a1aa;
+            bottom: -150px;
+            right: -200px;
+        }
 
         .forum-container {
             max-width: 820px;
@@ -248,6 +280,9 @@
             </button>
         </div>
     </nav>
+    
+    <div class="stats-glow stats-glow--left"></div>
+    <div class="stats-glow stats-glow--right"></div>
 
     <div class="forum-container">
         <div style="margin-bottom: 2.5rem;">
