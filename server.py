@@ -1,17 +1,24 @@
 import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Cargar variables de entorno desde .env si existe
+load_dotenv()
+
 app = Flask(__name__, static_folder='.', static_url_path='')
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY') or 'dev_secret_key'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
-db_url = os.getenv('DATABASE_URL')
+# Prioridad: DATABASE_URL (Render) -> SUPABASE_DATABASE_URI (.env local) -> Fallback local
+db_url = os.getenv('DATABASE_URL') or os.getenv('SUPABASE_DATABASE_URI') or "sqlite:///local.db"
+
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
