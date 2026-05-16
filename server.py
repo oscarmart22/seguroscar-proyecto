@@ -13,8 +13,9 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY') or 'dev_secret_key'
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
-# Prioridad: DATABASE_URL (Render) -> SUPABASE_DATABASE_URI (.env local) -> Fallback local
-db_url = os.getenv('DATABASE_URL') or os.getenv('SUPABASE_DATABASE_URI') or "sqlite:///local.db"
+# Prioridad: DATABASE_URL (Render) -> SUPABASE_DATABASE_URI / SUPABASE_URL (.env local) -> Fallback local
+db_url = os.getenv('DATABASE_URL') or os.getenv('SUPABASE_DATABASE_URI') or os.getenv('SUPABASE_URL') or "sqlite:///local.db"
+
 
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
